@@ -1,0 +1,22 @@
+name: Publish to PyPi
+
+on:
+  workflow_call:
+
+jobs:
+  validation:
+    runs-on: ubuntu-latest
+    name: Validation Checks
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+      - name: Build project for distribution
+        run: uv build
+      - name: Publish to PyPI
+        env:
+          UV_PUBLISH_TOKEN: ${{ secrets.PYPI_TOKEN }}
+        run: uv publish
