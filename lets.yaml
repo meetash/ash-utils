@@ -13,13 +13,13 @@ commands:
     description: Run code auto formatting tools tools
     cmd: |
       echo ${CYAN}"> Ruff Fix"${CLEAR}
-      poetry run ruff check --fix ${SRC_PATH}
-      poetry run ruff format ${SRC_PATH}
+      uv run ruff check --fix ${SRC_PATH}
+      uv run ruff format ${SRC_PATH}
 
   val:
     description: Run code validation tools
     cmd: |
       echo ${CYAN}"> Ruff"${CLEAR}
-      poetry run ruff check ${SRC_PATH}
+      uv run ruff check ${SRC_PATH}
       echo ${CYAN}"> PyRight"${CLEAR}
-      poetry run pyright
+      uv run pyright
