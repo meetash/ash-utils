@@ -15,15 +15,18 @@ class CatchUnexpectedExceptionsMiddleware:
         self.response_status_code = response_status_code
 
     async def __call__(self, scope, receive, send):
-        if scope["type"] == "http":
-            request = Request(scope, receive)
-            try:
-                await self.app(scope, receive, send)
-            except Exception:
-                logger.exception(f"Unexpected exception. Url: {request.url}")
-                response = ORJSONResponse(
-                    status_code=self.response_status_code,
-                    content={"detail": self.response_error_message},
-                )
-                await response(scope, receive, send)
-                return
+        if scope["type"] != "http":  # pragma: no cover
+            await self.app(scope, receive, send)
+            return
+
+        request = Request(scope, receive)
+        try:
+            await self.app(scope, receive, send)
+        except Exception:
+            logger.exception(f"Unexpected exception. Url: {request.url}")
+            response = ORJSONResponse(
+                status_code=self.response_status_code,
+                content={"detail": self.response_error_message},
+            )
+            await response(scope, receive, send)
+            return
