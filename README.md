@@ -1,13 +1,13 @@
 # ash-utils
 
-A collection of reusable components for FastAPI applications including exception handling middleware, request ID tracking, and a base HTTP client with error handling.
+Python library containing common utilities used across various ASH projects.
 
 ## Features
 
 1. **CatchUnexpectedExceptionsMiddleware** - Global exception handler for unexpected errors
 2. **RequestIDMiddleware** - Request ID tracking for improved logging and tracing
 3. **BaseApi** - Base HTTP client with built-in error handling and request ID propagation
-3. **configure_security_headers** - Function provides a pre-configured security header setup for FastAPI applications following security best practices.
+4. **configure_security_headers** - Function provides a pre-configured security header setup for FastAPI applications following security best practices.
 
 ## Installation
 
