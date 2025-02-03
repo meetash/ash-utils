@@ -44,4 +44,4 @@ build-backend = "hatchling.build"
 exclude = ["lets.yaml", "/tests"]
 
 [tool.uv.sources]
-secweb-dev = { git = "https://github.com/tmotagam/Secweb.git", rev = "1.9.x" }
+secweb-dev = { git = "https://github.com/tmotagam/Secweb.git", rev = "1.18.x" }

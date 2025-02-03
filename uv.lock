@@ -47,7 +47,7 @@ requires-dist = [
     { name = "fastapi", specifier = ">=0.115.7" },
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "loguru", specifier = ">=0.7.3" },
-    { name = "secweb-dev", git = "https://github.com/tmotagam/Secweb.git?rev=1.9.x" },
+    { name = "secweb-dev", git = "https://github.com/tmotagam/Secweb.git?rev=1.18.x" },
 ]
 
 [package.metadata.requires-dev]
@@ -306,8 +306,8 @@ wheels = [
 
 [[package]]
 name = "secweb-dev"
-version = "1.9.2"
-source = { git = "https://github.com/tmotagam/Secweb.git?rev=1.9.x#481f976479b04b160d5e305634bd7d9054eba76f" }
+version = "1.18.5"
+source = { git = "https://github.com/tmotagam/Secweb.git?rev=1.18.x#09a6fb0858630c16bdefb2225cade426c0a75d12" }
 
 [[package]]
 name = "sniffio"
