@@ -31,3 +31,10 @@ select = [
     "COM", "C4", "PL", "RET", "SIM", "RUF", "ARG", "ICN", "DTZ", "UP",
 ]
 ignore = ["COM812"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build]
+exclude = ["lets.yaml", "/tests"]
