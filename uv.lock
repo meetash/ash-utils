@@ -27,11 +27,12 @@ wheels = [
 [[package]]
 name = "ash-utils"
 version = "0.1.0"
-source = { virtual = "." }
+source = { editable = "." }
 dependencies = [
     { name = "fastapi" },
     { name = "httpx" },
     { name = "loguru" },
+    { name = "secweb-dev" },
 ]
 
 [package.dev-dependencies]
@@ -46,6 +47,7 @@ requires-dist = [
     { name = "fastapi", specifier = ">=0.115.7" },
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "loguru", specifier = ">=0.7.3" },
+    { name = "secweb-dev", git = "https://github.com/tmotagam/Secweb.git?rev=1.9.x" },
 ]
 
 [package.metadata.requires-dev]
@@ -301,6 +303,11 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/c3/01/65cadb59bf8d4fbe33d1a750103e6883d9ef302f60c28b73b773092fbde5/ruff-0.9.3-py3-none-win_amd64.whl", hash = "sha256:040ceb7f20791dfa0e78b4230ee9dce23da3b64dd5848e40e3bf3ab76468dcf4", size = 10821444 },
     { url = "https://files.pythonhosted.org/packages/69/cb/b3fe58a136a27d981911cba2f18e4b29f15010623b79f0f2510fd0d31fd3/ruff-0.9.3-py3-none-win_arm64.whl", hash = "sha256:800d773f6d4d33b0a3c60e2c6ae8f4c202ea2de056365acfa519aa48acf28e0b", size = 10038168 },
 ]
+
+[[package]]
+name = "secweb-dev"
+version = "1.9.2"
+source = { git = "https://github.com/tmotagam/Secweb.git?rev=1.9.x#481f976479b04b160d5e305634bd7d9054eba76f" }
 
 [[package]]
 name = "sniffio"

@@ -7,6 +7,7 @@ A collection of reusable components for FastAPI applications including exception
 1. **CatchUnexpectedExceptionsMiddleware** - Global exception handler for unexpected errors
 2. **RequestIDMiddleware** - Request ID tracking for improved logging and tracing
 3. **BaseApi** - Base HTTP client with built-in error handling and request ID propagation
+3. **configure_security_headers** - Function provides a pre-configured security header setup for FastAPI applications following security best practices.
 
 ## Installation
 
@@ -124,6 +125,31 @@ class ClientManagementServiceApi(BaseApi):
 
 ```
 
+4. Security Headers Configuration
+
+*Purpose:* This function provides a pre-configured security header setup for FastAPI applications following security best practices.
+
+```python
+from fastapi import FastAPI
+from ash_utils.middlewares import configure_security_headers
+
+app = FastAPI()
+configure_security_headers(app)
+
+@app.get("/")
+async def root():
+    return {"message": "Hello Secure World!"}
+```
+
+The configure_security_headers function adds these security middlewares with safe defaults:
+- Content Security Policy (CSP)
+- X-Content-Type-Options
+- Referrer-Policy
+- X-Frame-Options
+- HTTP Strict Transport Security (HSTS)
+- Permissions-Policy
+
+
 ### Configuration
 Middleware Configuration Options:
 - CatchUnexpectedExceptionsMiddleware
@@ -140,6 +166,7 @@ The BaseApi class provides two custom exceptions:
 
 - `ThirdPartyRequestError`: For network-level errors
 - `ThirdPartyHttpStatusError`: For HTTP 4xx/5xx responses
+
 
 ### Best Practices
 - Add CatchUnexpectedExceptionsMiddleware first in the middleware chain
