@@ -5,8 +5,8 @@ from Secweb.XContentTypeOptions import XContentTypeOptions
 from Secweb.XFrameOptions import XFrame
 from fastapi import FastAPI
 
-from constants import HEADERS_POLICIES_NONE, HEADERS_POLICIES_SELF
-from middlewares import PermissionsPolicy
+from ash_utils.constants import HEADERS_POLICIES_NONE, HEADERS_POLICIES_SELF
+from ash_utils.middlewares import PermissionsPolicy
 
 
 def configure_security_headers(app: FastAPI):
