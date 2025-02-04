@@ -8,7 +8,7 @@ dependencies = [
     "fastapi>=0.115.7",
     "httpx>=0.28.1",
     "loguru>=0.7.3",
-    "secweb-dev",
+    "secweb-dev@git+https://github.com/tmotagam/Secweb.git@1.18.x",
 ]
 authors = [{ name = "Shakun Raman", email = "shakunroman@gmail.com" }]
 keywords = ["fastapi", "middleware", "security", "utilities"]
@@ -43,5 +43,5 @@ build-backend = "hatchling.build"
 [tool.hatch.build]
 exclude = ["lets.yaml", "/tests"]
 
-[tool.uv.sources]
-secweb-dev = { git = "https://github.com/tmotagam/Secweb.git", rev = "1.18.x" }
+[tool.hatch.metadata]
+allow-direct-references = true
