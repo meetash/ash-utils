@@ -3,7 +3,7 @@ from starlette.datastructures import MutableHeaders
 
 
 class PermissionsPolicy:
-    def __init__(self, app: ASGIApp, options: dict[str, list[str]]):
+    def __init__(self, app: ASGIApp, Option: dict[str, list[str]]):
         self.app = app
         self.allowed_policies = [
             "accelerometer", "ambient-light-sensor", "attribution-reporting",
@@ -16,7 +16,7 @@ class PermissionsPolicy:
             "screen-wake-lock", "serial", "storage-access", "usb", "web-share",
             "window-management", "xr-spatial-tracking"
         ]
-        self.policy_header = self._generate_header_value(options)
+        self.policy_header = self._generate_header_value(Option)
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] != "http":
