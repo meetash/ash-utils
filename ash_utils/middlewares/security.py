@@ -1,12 +1,12 @@
-from fastapi import FastAPI
 from Secweb.ContentSecurityPolicy import ContentSecurityPolicy
-from Secweb.PermissionsPolicy import PermissionsPolicy
 from Secweb.ReferrerPolicy import ReferrerPolicy
 from Secweb.StrictTransportSecurity import HSTS
 from Secweb.XContentTypeOptions import XContentTypeOptions
 from Secweb.XFrameOptions import XFrame
+from fastapi import FastAPI
 
 from constants import HEADERS_POLICIES_NONE, HEADERS_POLICIES_SELF
+from middlewares import PermissionsPolicy
 
 
 def configure_security_headers(app: FastAPI):
@@ -39,8 +39,8 @@ def configure_security_headers(app: FastAPI):
         style_nonce=False,
     )
     app.add_middleware(XContentTypeOptions)
-    app.add_middleware(ReferrerPolicy, Option={"Referrer-Policy": "strict-origin-when-cross-origin"})
-    app.add_middleware(XFrame, Option={"X-Frame-Options": "DENY"})
+    app.add_middleware(ReferrerPolicy)
+    app.add_middleware(XFrame)
     app.add_middleware(HSTS, Option={"max-age": 63072000, "preload": True})
     app.add_middleware(
         PermissionsPolicy,

@@ -8,7 +8,7 @@ dependencies = [
     "fastapi>=0.115.7",
     "httpx>=0.28.1",
     "loguru>=0.7.3",
-    "secweb-dev==1.18.5",
+    "secweb>=1.18.1",
 ]
 authors = [{ name = "Shakun Raman", email = "shakunroman@gmail.com" }]
 keywords = ["fastapi", "middleware", "security", "utilities"]

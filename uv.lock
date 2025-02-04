@@ -32,7 +32,7 @@ dependencies = [
     { name = "fastapi" },
     { name = "httpx" },
     { name = "loguru" },
-    { name = "secweb-dev" },
+    { name = "secweb" },
 ]
 
 [package.dev-dependencies]
@@ -47,7 +47,7 @@ requires-dist = [
     { name = "fastapi", specifier = ">=0.115.7" },
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "loguru", specifier = ">=0.7.3" },
-    { name = "secweb-dev", git = "https://github.com/tmotagam/Secweb.git?rev=1.18.x" },
+    { name = "secweb", specifier = ">=1.18.1" },
 ]
 
 [package.metadata.requires-dev]
@@ -305,9 +305,13 @@ wheels = [
 ]
 
 [[package]]
-name = "secweb-dev"
-version = "1.18.5"
-source = { git = "https://github.com/tmotagam/Secweb.git?rev=1.18.x#09a6fb0858630c16bdefb2225cade426c0a75d12" }
+name = "secweb"
+version = "1.18.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/4f/b6/34ded81fba0c76180779187dcdf04f93f208a4228ff2cf310234dbe95eb6/secweb-1.18.1.tar.gz", hash = "sha256:49917049b2c0bbd692fcc2a99c2ff12b86477c4096616ab24f280554f8238dcd", size = 24963 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/00/9c/db0a0604608e8bcc986e2332e9f10b839e982a6b9309e27ac33f688fffa1/Secweb-1.18.1-py3-none-any.whl", hash = "sha256:f25954021f0fa8bbcf8f19909fce9edceeccd559a58db191443079c65b7b601c", size = 39550 },
+]
 
 [[package]]
 name = "sniffio"
