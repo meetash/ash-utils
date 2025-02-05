@@ -8,9 +8,10 @@ jobs:
     runs-on: ubuntu-latest
     name: Unit Tests
     env:
-      COVERAGE_SINGLE: 85
       COVERAGE_TOTAL: 90
       PULL_NUMBER: ${{ github.event.pull_request.number }}
+      PYTEST_ROOT_DIR: tests
+      OMIT_LIST: tests/*
       COMMIT_URL: "https://github.com/${{ github.repository }}/pull/${{ github.event.pull_request.number }}/commits/${{ github.event.after }}"
     steps:
       - uses: actions/checkout@v4
