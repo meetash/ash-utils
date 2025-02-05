@@ -13,23 +13,16 @@ jobs:
       PULL_NUMBER: ${{ github.event.pull_request.number }}
       COMMIT_URL: "https://github.com/${{ github.repository }}/pull/${{ github.event.pull_request.number }}/commits/${{ github.event.after }}"
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: 3.11.4
-      - name: Install Lets
-        uses: lets-cli/lets-action@v1.1
+      - id: run-tests-pr
+        uses: dima-engineer/pytest-reporter@v3
         with:
-          version: "v0.0.50"
-      - id: run-tests
-        uses: dima-engineer/pytest-reporter@v2.1.1
-        with:
-          pytest-root-dir: .
-          cov-omit-list: tests/*,
-          cov-threshold-single: ${{ env.COVERAGE_SINGLE }}
+          pytest-tests-dir: ${{ env.PYTEST_ROOT_DIR }}
+          cov-omit-list: ${{ env.OMIT_LIST }}
           cov-threshold-total: ${{ env.COVERAGE_TOTAL }}
-          async-tests: true
-          poetry-version: 1.4.2
       - name: Generate XML coverage report
         run: |
           coverage xml
