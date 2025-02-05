@@ -8,5 +8,4 @@ jobs:
     uses: './.github/workflows/validate_code.yml'
   tests:
     name: Tests
-    needs: validation
     uses: './.github/workflows/tests.yml'
