@@ -159,3 +159,4 @@ log/
 .ruff_cache/
 .lets/
 .DS_Store
+Thumbs.db
