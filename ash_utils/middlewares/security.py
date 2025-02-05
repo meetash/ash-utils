@@ -1,10 +1,10 @@
+from fastapi import FastAPI
 from Secweb.ContentSecurityPolicy import ContentSecurityPolicy
 from Secweb.PermissionsPolicy import PermissionsPolicy
 from Secweb.ReferrerPolicy import ReferrerPolicy
 from Secweb.StrictTransportSecurity import HSTS
 from Secweb.XContentTypeOptions import XContentTypeOptions
 from Secweb.XFrameOptions import XFrame
-from fastapi import FastAPI
 
 from ash_utils.constants import HEADERS_POLICIES_NONE, HEADERS_POLICIES_SELF
 
