@@ -1,0 +1,47 @@
+[project]
+name = "ash-utils"
+version = "0.1.0"
+description = "Python library containing common utilities used across various ASH projects."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.115.7",
+    "httpx>=0.28.1",
+    "loguru>=0.7.3",
+    "secweb-dev@git+https://github.com/tmotagam/Secweb.git@1.18.x",
+]
+authors = [{ name = "Shakun Raman", email = "shakunroman@gmail.com" }]
+keywords = ["fastapi", "middleware", "security", "utilities"]
+
+
+[dependency-groups]
+dev = [
+    "pyright>=1.1.392.post0",
+    "pytest>=8.3.4",
+    "ruff>=0.9.3",
+]
+
+[tool.pyright]
+include = ["ash_utils"]
+pythonVersion = "3.11"
+
+[tool.ruff]
+src = ["ash_utils"]
+line-length = 120
+
+[tool.ruff.lint]
+select = [
+    "F", "E", "W", "C90", "I", "N", "S", "B", "A", "ISC", "T20", "Q", "PTH",
+    "COM", "C4", "PL", "RET", "SIM", "RUF", "ARG", "ICN", "DTZ", "UP",
+]
+ignore = ["COM812"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build]
+exclude = ["lets.yaml", "/tests"]
+
+[tool.hatch.metadata]
+allow-direct-references = true

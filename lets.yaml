@@ -1,0 +1,25 @@
+shell: /bin/sh
+
+env:
+  GREEN: '\033[0;32m'
+  CYAN: '\033[0;36m'
+  YELLOW: '\033[0;33m'
+  CLEAR: '\033[0m'
+  SRC_PATH: 'ash_utils/'
+
+commands:
+
+  fmt:
+    description: Run code auto formatting tools tools
+    cmd: |
+      echo ${CYAN}"> Ruff Fix"${CLEAR}
+      uv run ruff check --fix ${SRC_PATH}
+      uv run ruff format ${SRC_PATH}
+
+  val:
+    description: Run code validation tools
+    cmd: |
+      echo ${CYAN}"> Ruff"${CLEAR}
+      uv run ruff check ${SRC_PATH}
+      echo ${CYAN}"> PyRight"${CLEAR}
+      uv run pyright
