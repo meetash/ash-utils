@@ -25,14 +25,13 @@ wheels = [
 ]
 
 [[package]]
-name = "ash-utils"
+name = "ashwelness-utils"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "fastapi" },
     { name = "httpx" },
     { name = "loguru" },
-    { name = "pytest-coverage" },
     { name = "secweb" },
 ]
 
@@ -41,6 +40,7 @@ dev = [
     { name = "pyright" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
+    { name = "pytest-coverage" },
     { name = "ruff" },
 ]
 
@@ -49,7 +49,6 @@ requires-dist = [
     { name = "fastapi", specifier = ">=0.115.7" },
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "loguru", specifier = ">=0.7.3" },
-    { name = "pytest-coverage", specifier = ">=0.0" },
     { name = "secweb", specifier = ">=1.18.1" },
 ]
 
@@ -58,6 +57,7 @@ dev = [
     { name = "pyright", specifier = ">=1.1.392.post0" },
     { name = "pytest", specifier = ">=8.3.4" },
     { name = "pytest-asyncio", specifier = ">=0.25.3" },
+    { name = "pytest-coverage", specifier = ">=0.0" },
     { name = "ruff", specifier = ">=0.9.3" },
 ]
 
