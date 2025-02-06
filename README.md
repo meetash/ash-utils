@@ -14,11 +14,11 @@ Python library containing common utilities used across various ASH projects.
 ### PyPi
 
 ```shell
-pip install ash-utils
+pip install ashwelness-utils
 
 # OR
 
-poetry add ash-utils
+poetry add ashwelness-utils
 ```
 
 ### From github

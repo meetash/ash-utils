@@ -1,5 +1,5 @@
 [project]
-name = "ash-utils"
+name = "ashwelness-utils"
 version = "0.1.0"
 description = "Python library containing common utilities used across various ASH projects."
 readme = "README.md"
