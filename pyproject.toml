@@ -9,7 +9,7 @@ dependencies = [
     "httpx>=0.28.1",
     "loguru>=0.7.3",
     "pytest-coverage>=0.0",
-    "secweb-dev@git+https://github.com/tmotagam/Secweb.git@1.18.x",
+    "secweb>=1.18.1",
 ]
 authors = [{ name = "Shakun Raman", email = "shakunroman@gmail.com" }]
 keywords = ["fastapi", "middleware", "security", "utilities"]
