@@ -19,7 +19,7 @@ jobs:
         with:
           python-version: 3.11.4
       - id: run-tests-pr
-        uses: dima-engineer/pytest-reporter@v3
+        uses: dima-engineer/pytest-reporter@add-uv
         with:
           pytest-tests-dir: ${{ env.PYTEST_ROOT_DIR }}
           cov-omit-list: ${{ env.OMIT_LIST }}
