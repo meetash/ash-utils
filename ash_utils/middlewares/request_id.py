@@ -4,6 +4,7 @@ from contextvars import ContextVar
 
 from fastapi import Request
 from loguru import logger
+from starlette.types import ASGIApp
 
 from ash_utils.constants import REQUEST_ID_HEADER_NAME
 
@@ -17,7 +18,7 @@ class RequestIDMiddleware:
     `request_id` is returned in the "X-Request-ID" header of the response.
     """
 
-    def __init__(self, app, header_name: str = REQUEST_ID_HEADER_NAME):
+    def __init__(self, app: ASGIApp, header_name: str = REQUEST_ID_HEADER_NAME):
         self.app = app
         self.header_name = header_name
 

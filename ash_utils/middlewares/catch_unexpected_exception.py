@@ -1,12 +1,13 @@
-from fastapi import FastAPI, Request, status
+from fastapi import Request, status
 from fastapi.responses import JSONResponse
 from loguru import logger
+from starlette.types import ASGIApp
 
 
 class CatchUnexpectedExceptionsMiddleware:
     def __init__(
         self,
-        app: FastAPI,
+        app: ASGIApp,
         response_error_message: str,
         response_status_code: int = status.HTTP_500_INTERNAL_SERVER_ERROR,
     ):
