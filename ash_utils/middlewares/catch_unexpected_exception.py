@@ -1,5 +1,5 @@
 from fastapi import FastAPI, Request, status
-from fastapi.responses import ORJSONResponse
+from fastapi.responses import JSONResponse
 from loguru import logger
 
 
@@ -24,7 +24,7 @@ class CatchUnexpectedExceptionsMiddleware:
             await self.app(scope, receive, send)
         except Exception:
             logger.exception(f"Unexpected exception. Url: {request.url}")
-            response = ORJSONResponse(
+            response = JSONResponse(
                 status_code=self.response_status_code,
                 content={"detail": self.response_error_message},
             )

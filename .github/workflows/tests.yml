@@ -1,0 +1,35 @@
+name: Run Project Unit Tests
+
+on:
+  workflow_call:
+
+jobs:
+  unitTests:
+    runs-on: ubuntu-latest
+    name: Unit Tests
+    env:
+      COVERAGE_TOTAL: 90
+      PULL_NUMBER: ${{ github.event.pull_request.number }}
+      PYTEST_ROOT_DIR: tests
+      OMIT_LIST: tests/*
+      COMMIT_URL: "https://github.com/${{ github.repository }}/pull/${{ github.event.pull_request.number }}/commits/${{ github.event.after }}"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: 3.11.4
+      - id: run-tests-pr
+        uses: dima-engineer/pytest-reporter@v4
+        with:
+          pytest-tests-dir: ${{ env.PYTEST_ROOT_DIR }}
+          cov-omit-list: ${{ env.OMIT_LIST }}
+          cov-threshold-total: ${{ env.COVERAGE_TOTAL }}
+          uv-version: 0.5.29
+      - name: Generate XML coverage report
+        run: |
+          coverage xml
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage.xml

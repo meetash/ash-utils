@@ -6,3 +6,6 @@ jobs:
   validation:
     name: Code Validation
     uses: './.github/workflows/validate_code.yml'
+  tests:
+    name: Tests
+    uses: './.github/workflows/tests.yml'

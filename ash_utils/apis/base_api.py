@@ -1,9 +1,10 @@
 import typing as t
+from http import HTTPMethod
 
 from httpx import AsyncClient, HTTPStatusError, RequestError, Response
 from loguru import logger
 
-import constants
+from ash_utils import constants
 from ash_utils.middlewares import request_id_var
 
 
@@ -18,16 +19,13 @@ class BaseApi:
             self.text = text
             self.response = response
 
-        def __str__(self):
-            return f"Status code: {self.status_code} | Text: {self.text}"
-
     def __init__(self, client: AsyncClient, request_id_header_name: str = constants.REQUEST_ID_HEADER_NAME):
         self.client = client
         self.request_id_header_name = request_id_header_name
 
     async def _send_request(
         self,
-        method: str,
+        method: HTTPMethod,
         url: str,
         body: dict[str, t.Any] | list[int] | None = None,
         params: dict[str, t.Any] | None = None,

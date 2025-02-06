@@ -6,6 +6,7 @@ env:
   YELLOW: '\033[0;33m'
   CLEAR: '\033[0m'
   SRC_PATH: 'ash_utils/'
+  TEST_PATH: 'tests/'
 
 commands:
 
@@ -14,7 +15,7 @@ commands:
     cmd: |
       echo ${CYAN}"> Ruff Fix"${CLEAR}
       uv run ruff check --fix ${SRC_PATH}
-      uv run ruff format ${SRC_PATH}
+      uv run ruff format ${SRC_PATH} ${TEST_PATH}
 
   val:
     description: Run code validation tools
@@ -23,3 +24,8 @@ commands:
       uv run ruff check ${SRC_PATH}
       echo ${CYAN}"> PyRight"${CLEAR}
       uv run pyright
+
+  test:
+    description: Run project tests
+    cmd: |
+      uv run pytest --cov="." --cov-report term-missing --color=yes -s "${LETS_COMMAND_ARGS}"
