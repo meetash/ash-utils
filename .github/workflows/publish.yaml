@@ -4,9 +4,9 @@ on:
   workflow_call:
 
 jobs:
-  validation:
+  publish:
     runs-on: ubuntu-latest
-    name: Validation Checks
+    name: Publish
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
