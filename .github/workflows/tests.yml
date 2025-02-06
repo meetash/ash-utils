@@ -24,6 +24,7 @@ jobs:
           pytest-tests-dir: ${{ env.PYTEST_ROOT_DIR }}
           cov-omit-list: ${{ env.OMIT_LIST }}
           cov-threshold-total: ${{ env.COVERAGE_TOTAL }}
+          uv-version: 0.5.29
       - name: Generate XML coverage report
         run: |
           coverage xml
