@@ -9,6 +9,7 @@ dependencies = [
     "httpx>=0.28.1",
     "loguru>=0.7.3",
     "secweb>=1.18.1",
+    "sentry-sdk=^2.22.0",
 ]
 authors = [{ name = "Shakun Raman", email = "shakunroman@gmail.com" }]
 keywords = ["fastapi", "middleware", "security", "utilities"]

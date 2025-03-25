@@ -8,6 +8,7 @@ Python library containing common utilities used across various ASH projects.
 2. **RequestIDMiddleware** - Request ID tracking for improved logging and tracing
 3. **BaseApi** - Base HTTP client with built-in error handling and request ID propagation
 4. **configure_security_headers** - Function provides a pre-configured security header setup for FastAPI applications following security best practices.
+5. **Initialize Sentry** - Function to initialize Sentry for error tracking and proper PII sanitization in a project.
 
 ## Installation
 
@@ -172,3 +173,18 @@ The BaseApi class provides two custom exceptions:
 - Add CatchUnexpectedExceptionsMiddleware first in the middleware chain
 - Configure a meaningful error message for production environments
 - Use the BaseApi for all external API calls to ensure consistent error handling
+
+5. Sentry Initialization
+
+*Purpose*: A standard initialization of Sentry for error tracking and proper PII sanitization across projects.
+
+```python
+from ash_utils.helpers.sentry import initialize_sentry
+
+initialize_sentry(
+    dsn="https://your-sentry-dsn",
+    environment="production",
+    release="1.0.0",
+)
+```
+This implementation abstracts away much of the boilerplate code required to initialize Sentry in a project. It also ensures that PII is properly sanitized in the logs and error messages. A user will be required to pass the Sentry DSN, environment, and release version to the function, while the traces sample rate is optional but set to 0.1 by default. The function also sets up the logging integration with Sentry, so all logs will be santized and sent to Sentry as well. The following 
