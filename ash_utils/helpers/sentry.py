@@ -1,5 +1,7 @@
+from enum import StrEnum
 import json
 from functools import partial
+from re import L
 from typing import cast
 
 import sentry_sdk
@@ -11,6 +13,15 @@ from sentry_sdk.integrations.fastapi import FastApiIntegration
 from sentry_sdk.integrations.loguru import LoguruIntegration
 from sentry_sdk.scrubber import DEFAULT_DENYLIST, DEFAULT_PII_DENYLIST, EventScrubber
 from sentry_sdk.types import Event
+
+
+class LoguruConfig(StrEnum):
+    DEFAULT_LOGURU_FORMAT = (
+        "<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | "
+        "<level>{level: <8}</level> | "
+        "<cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - "
+        "<level>{message}</level>"
+    )
 
 
 class SentryConfig(BaseModel):
@@ -90,7 +101,7 @@ def redact_logentry(event: Event, sentry_config: SentryConfig) -> Event:
                 if key in logentry_string:
                     event["logentry"]["message"] = f"REDACTED SENSITIVE ERROR | key: {key} | {extra.get('kit_id')}"  # type: ignore[reportIndexIssue]
                     break
-
+    logger.debug(f"before_send redacted logentry: {event}")
     return event
 
 
@@ -137,7 +148,7 @@ def redact_exception(event: Event, sentry_config: SentryConfig) -> Event | None:
             )
             for key in ["exception", "contexts", "extra", "breadcrumbs", "tags"]:
                 event.pop(key, None)  # type: ignore
-
+    logger.debug(f"before_send redacted exception: {event}")
     return event
 
 
@@ -152,7 +163,7 @@ def before_send(event: Event, _hint, sentry_config: SentryConfig) -> Event:
     Returns:
         Event: The redacted Sentry event
     """
-
+    logger.debug(f"redacting sentry logs | before_send event: {event}")
     event_log_redacted = redact_logentry(event, sentry_config)
     return redact_exception(event_log_redacted, sentry_config)
 
@@ -171,10 +182,10 @@ def initialize_sentry(
 
     #### Params:
         `sentry_dsn` (str): The DSN for the Sentry project.
-        `traces_sample_rate` (float): The sample rate for Sentry traces;
-            defaults to 0.1 if not passed.
         `environment` (str): The environment for the Sentry project.
         `release` (str): The release version for the Sentry project.
+        `traces_sample_rate` (float): OPTIONAL - The sample rate for Sentry traces;
+            defaults to 0.1 if not passed.
 
     #### Defaults Applied Automatically:
     - `Integrations`: Includes `FastApiIntegration()` and `LoguruIntegration()`.
@@ -182,7 +193,7 @@ def initialize_sentry(
     - `send_default_pii`: Disabled (`False`) to avoid sending user PII.
     - `Event Scrubber`: Uses an internal scrubber to filter sensitive data;
         custom denylist added to both Sentry default and PII denylist.
-    - `before_send`: Pre-bound function to sanitize logs.
+    - `before_send`: Pre-bound function to sanitize logs/exceptions.
 
     Example usage:
     ```python
@@ -200,8 +211,8 @@ def initialize_sentry(
         integrations=(
             FastApiIntegration(),
             LoguruIntegration(
-                event_format=_log_format,
-                breadcrumb_format=_log_format,
+                event_format=LoguruConfig.DEFAULT_LOGURU_FORMAT,
+                breadcrumb_format=LoguruConfig.DEFAULT_LOGURU_FORMAT,
             ),
         ),
         release=release,
