@@ -182,9 +182,24 @@ The BaseApi class provides two custom exceptions:
 from ash_utils.helpers.sentry import initialize_sentry
 
 initialize_sentry(
+    # with all defaults
     dsn="https://your-sentry-dsn",
     environment="production",
     release="1.0.0",
 )
+
+initialize_sentry(
+    # with custom sample rate and additional integrations
+    dsn="https://your-sentry-dsn",
+    environment="staging",
+    release="1.0.0",
+    traces_sample_rate=0.4,
+    additional_integrations=[SqlalchemyIntegration()]
+)
 ```
-This implementation abstracts away much of the boilerplate code required to initialize Sentry in a project. It also ensures that PII is properly sanitized in the logs and error messages. A user will be required to pass the Sentry DSN, environment, and release version to the function, while the traces sample rate is optional but set to 0.1 by default. The function also sets up the logging integration with Sentry, so all logs will be santized and sent to Sentry as well. The following 
+This implementation abstracts away much of the boilerplate code required to initialize Sentry in a project. It also ensures that PII is properly sanitized in the logs and error messages. A user will be required to pass the Sentry DSN, environment, and release version to the function, while the traces sample rate is optional but set to 0.1 by default. The function also sets up the logging integration with Sentry, so all logs will be santized and sent to Sentry as well. The helper function accepts the following parameters:
+- `dsn`: The Sentry DSN for your project.
+- `environment`: The environment in which your application is running (e.g., production, staging).
+- `release`: The release version of your application.
+- `traces_sample_rate`: The sample rate for traces (default is 0.1).
+- `additional_integrations`: A list of additional Sentry integrations to include (optional) -- FastApi and Loguru integrations are included by default.

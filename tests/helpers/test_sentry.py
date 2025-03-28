@@ -11,6 +11,9 @@ from ash_utils.helpers.sentry import (
     SentryConfig,
     initialize_sentry,
 )
+
+from sentry_sdk.integrations.fastapi import FastApiIntegration
+from sentry_sdk.integrations.loguru import LoguruIntegration
 from parameterized import parameterized
 
 
@@ -196,4 +199,33 @@ class SentryUtilitiesTestcase(IsolatedAsyncioTestCase):
                 send_default_pii=False,
                 event_scrubber=mock.ANY,
                 before_send=mock.ANY,
+            )
+
+    def test_initialize_sentry_with_additional_integrations(self):
+        """
+        Test the initialize_sentry function with additional integrations.
+        """
+        with patch("ash_utils.helpers.sentry.sentry_sdk.init") as mock_init:
+            test_sentry_dsn = "https://test-dsn.com"
+            test_release = "0.2.0"
+            test_environment = "staging"
+            mock_sqlalchemy_integration = mock.MagicMock(name="SqlalchemyIntegration")
+            test_additional_integrations = [mock_sqlalchemy_integration]
+
+            initialize_sentry(
+                sentry_dsn=test_sentry_dsn,
+                release=test_release,
+                environment=test_environment,
+                additional_integrations=test_additional_integrations,
+            )
+
+            mock_init.assert_called_once()
+            self.assertIn(test_additional_integrations[0], mock_init.call_args[1]["integrations"])
+            actual_integrations = mock_init.call_args[1]["integrations"]
+            self.assertEqual(len(actual_integrations), 3)
+            expected_types = {FastApiIntegration, LoguruIntegration}
+            actual_types = {type(i) for i in actual_integrations}
+            self.assertTrue(
+                expected_types.issubset(actual_types),
+                f"Missing expected integrations. Found only: {actual_types}",
             )
