@@ -194,7 +194,7 @@ initialize_sentry(
     environment="staging",
     release="1.0.0",
     traces_sample_rate=0.4,
-    additional_integrations=[SqlalchemyIntegration()]
+    additional_integrations=[FastAPIIntegration(), SqlalchemyIntegration()]
 )
 ```
 This implementation abstracts away much of the boilerplate code required to initialize Sentry in a project. It also ensures that PII is properly sanitized in the logs and error messages. A user will be required to pass the Sentry DSN, environment, and release version to the function, while the traces sample rate is optional but set to 0.1 by default. The function also sets up the logging integration with Sentry, so all logs will be santized and sent to Sentry as well. The helper function accepts the following parameters:
@@ -202,4 +202,4 @@ This implementation abstracts away much of the boilerplate code required to init
 - `environment`: The environment in which your application is running (e.g., production, staging).
 - `release`: The release version of your application.
 - `traces_sample_rate`: The sample rate for traces (default is 0.1).
-- `additional_integrations`: A list of additional Sentry integrations to include (optional) -- FastApi and Loguru integrations are included by default.
+- `additional_integrations`: A list of additional Sentry integrations to include (optional) -- Loguru integration is included by default.

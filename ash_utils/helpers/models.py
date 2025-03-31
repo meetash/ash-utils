@@ -1,21 +1,24 @@
 from ash_utils.helpers.constants import LoguruConstants
-from pydantic import BaseModel, ConfigDict, Field
-from sentry_sdk.integrations.fastapi import FastApiIntegration
+from pydantic import BaseModel, Field
 from sentry_sdk.integrations.loguru import LoguruIntegration
-from sentry_sdk.scrubber import DEFAULT_DENYLIST, DEFAULT_PII_DENYLIST, EventScrubber
+from sentry_sdk.scrubber import DEFAULT_DENYLIST, DEFAULT_PII_DENYLIST
 
 
 class SentryConfig(BaseModel):
-    model_config = ConfigDict(arbitrary_types_allowed=True)
+    """
+    Contains default configuration for Sentry Initiailization.
+    This class is used to configure Sentry SDK with default settings.
+    This class also sets default denylist and pii denylist by combining a
+        custom keys_to_filter with the default denylist and pii denylist
+        provided by Sentry SDK.
+    """
 
     default_integrations: list = [
-        FastApiIntegration(),
         LoguruIntegration(
             event_format=LoguruConstants.DEFAULT_LOGURU_FORMAT,
             breadcrumb_format=LoguruConstants.DEFAULT_LOGURU_FORMAT,
         ),
     ]
-    event_scrubber: EventScrubber | None = None
     keys_to_filter: list[str] = Field(
         default_factory=lambda: [
             "address",
@@ -64,15 +67,14 @@ class SentryConfig(BaseModel):
         ]
     )
     denylist: list[str] = Field(default_factory=lambda: DEFAULT_DENYLIST[:])
-    pii_denylist: list[str] = Field(default_factory=lambda: DEFAULT_PII_DENYLIST[:])
+    pii_denylist: list[str] = Field(
+        default_factory=lambda: DEFAULT_PII_DENYLIST[:],
+    )
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
         self.denylist = sorted(set(self.denylist + self.keys_to_filter))
-        self.pii_denylist = sorted(set(self.pii_denylist + self.keys_to_filter))
-        object.__setattr__(
-            self,
-            "event_scrubber",
-            EventScrubber(recursive=True, denylist=self.denylist, pii_denylist=self.pii_denylist),
+        self.pii_denylist = sorted(
+            set(self.pii_denylist + self.keys_to_filter),
         )

@@ -6,6 +6,7 @@ from ash_utils.helpers.constants import SentryConstants
 from ash_utils.helpers.models import SentryConfig
 from loguru import logger
 from nested_lookup import nested_update
+from sentry_sdk.scrubber import EventScrubber
 from sentry_sdk.types import Event
 
 
@@ -120,7 +121,7 @@ def initialize_sentry(
         `traces_sample_rate` (float): OPTIONAL - The sample rate for Sentry traces;
             defaults to 0.1 if not passed.
         `additional_integrations` (list): OPTIONAL - Additional Sentry integrations to include;
-            integrations defaults to FastApiIntegration() and LoguruIntegration() if not passed.
+            integrations defaults to LoguruIntegration() if not passed.
 
     #### Defaults Applied Automatically:
     - `include_local_variables`: Set to `False` for security reasons.
@@ -131,12 +132,18 @@ def initialize_sentry(
 
     Example usage:
     ```python
+    from ash_utils.helpers.sentry import initialize_sentry
+    from sentry_sdk.integrations.fastapi import FastAPIIntegration
+    from sentry_sdk.integrations.sqlalchemy import SqlalchemyIntegration
+
     initialize_sentry(
         dsn="your-dsn",
-        traces_sample_rate=0.5,
-        release="1.2.3",
         environment="staging",
-        additional_integrations=[SqlalchemyIntegration()],
+        release="1.2.3",
+        traces_sample_rate=0.5,
+        additional_integrations=[
+            FastAPIIntegration(), SqlalchemyIntegration()
+        ],
     )
     ```
     """
@@ -155,6 +162,10 @@ def initialize_sentry(
         environment=environment,
         include_local_variables=False,
         send_default_pii=False,
-        event_scrubber=config.event_scrubber,
+        event_scrubber=EventScrubber(
+            recursive=True,
+            denylist=config.denylist,
+            pii_denylist=config.pii_denylist,
+        ),
         before_send=prebound_before_send,
     )

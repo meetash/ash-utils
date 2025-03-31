@@ -170,6 +170,10 @@ class SentryUtilitiesTestcase(IsolatedAsyncioTestCase):
                 event_scrubber=mock.ANY,
                 before_send=mock.ANY,
             )
+            self.assertEqual(mock_init.call_args[1]["traces_sample_rate"], 0.1)
+            default_ints = mock_init.call_args[1]["integrations"]
+            self.assertEqual(len(default_ints), 1)
+            self.assertIsInstance(default_ints[0], LoguruIntegration)
 
     def test_intialize_custom_traces_sample_rate(self):
         """
@@ -200,6 +204,7 @@ class SentryUtilitiesTestcase(IsolatedAsyncioTestCase):
                 event_scrubber=mock.ANY,
                 before_send=mock.ANY,
             )
+            self.assertNotEqual(mock_init.call_args[1]["traces_sample_rate"], 0.1)
 
     def test_initialize_sentry_with_additional_integrations(self):
         """
@@ -210,7 +215,8 @@ class SentryUtilitiesTestcase(IsolatedAsyncioTestCase):
             test_release = "0.2.0"
             test_environment = "staging"
             mock_sqlalchemy_integration = mock.MagicMock(name="SqlalchemyIntegration")
-            test_additional_integrations = [mock_sqlalchemy_integration]
+            mock_loguru_integration = mock.MagicMock(name="LoguruIntegration")
+            test_additional_integrations = [mock_sqlalchemy_integration, mock_loguru_integration]
 
             initialize_sentry(
                 sentry_dsn=test_sentry_dsn,
@@ -223,7 +229,7 @@ class SentryUtilitiesTestcase(IsolatedAsyncioTestCase):
             self.assertIn(test_additional_integrations[0], mock_init.call_args[1]["integrations"])
             actual_integrations = mock_init.call_args[1]["integrations"]
             self.assertEqual(len(actual_integrations), 3)
-            expected_types = {FastApiIntegration, LoguruIntegration}
+            expected_types = {LoguruIntegration}
             actual_types = {type(i) for i in actual_integrations}
             self.assertTrue(
                 expected_types.issubset(actual_types),
