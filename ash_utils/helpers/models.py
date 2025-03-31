@@ -15,8 +15,8 @@ class SentryConfig(BaseModel):
 
     default_integrations: list = [
         LoguruIntegration(
-            event_format=LoguruConstants.DEFAULT_LOGURU_FORMAT,
-            breadcrumb_format=LoguruConstants.DEFAULT_LOGURU_FORMAT,
+            event_format=LoguruConstants.event_log_format,
+            breadcrumb_format=LoguruConstants.breadcrumb_log_format,
         ),
     ]
     keys_to_filter: list[str] = Field(
