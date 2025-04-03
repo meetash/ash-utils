@@ -12,24 +12,28 @@ from ash_utils.helpers.sentry import (
     initialize_sentry,
 )
 
-from sentry_sdk.integrations.fastapi import FastApiIntegration
 from sentry_sdk.integrations.loguru import LoguruIntegration
 from parameterized import parameterized
 
 
 class SentryUtilitiesTestcase(IsolatedAsyncioTestCase):
     def setUp(self) -> None:
-        config = SentryConfig()
-        self.sentry_config = config
+        self.sentry_config = SentryConfig()
 
-    def tearDown(self):
-        return super().tearDown()
-
-    def test_try_parse_json(self):
+    def test_try_parse_json_returns_None_with_invalid_json(self):
         self.assertIsNone(try_parse_json(""))
         self.assertIsNone(try_parse_json("invalid"))
-        self.assertEqual(try_parse_json("{'key': 'value'}"), {"key": "value"})
-        self.assertEqual(try_parse_json('{"key": "value"}'), {"key": "value"})
+
+    @parameterized.expand(
+        [
+            ("{'key': 'value'}", {"key": "value"}),
+            ('{"key": "value"}', {"key": "value"}),
+            ('{"key": "value", "nested": {"key2": "value2"}}', {"key": "value", "nested": {"key2": "value2"}}),
+            ('{"key": ["value1", "value2"]}', {"key": ["value1", "value2"]}),
+        ]
+    )
+    def test_try_parse_json_returns_dict_with_valid_json(self, json_to_parse, expected_result):
+        self.assertEqual(try_parse_json(json_to_parse), expected_result)
 
     @parameterized.expand(
         [
@@ -132,7 +136,10 @@ class SentryUtilitiesTestcase(IsolatedAsyncioTestCase):
                 self.assertIn(key, redacted_event)
                 self.assertEqual(redacted_event[key], {})
 
-    def test_before_send(self):
+    def test_before_send__no_sensitive_data__information_unchanged(self):
+        """
+        Test the before_send function when no sensitive data is present to ensure that the event is unchanged.
+        """
         event = {
             "logentry": {"message": "test message"},
             "exception": {"values": [{"value": "exception string"}]},
@@ -143,7 +150,24 @@ class SentryUtilitiesTestcase(IsolatedAsyncioTestCase):
         self.assertEqual(redacted_event["exception"], {"values": [{"value": "exception string"}]})
         self.assertEqual(redacted_event["extra"]["extra"]["kit_id"], "test-kit-id")
 
-    def test_initialize_sentry(self):
+    def test_before_send__sensitive_data_present__data_redacted(self):
+        """
+        Test the before_send function when sensitive data is present to ensure that the event is redacted
+        """
+        event = {
+            "logentry": {"message": "test message with SENSITIVE data"},
+            "exception": {"values": [{"value": json.dumps({"test": "some string", "phone": "123-456-7890"})}]},
+            "extra": {"extra": {"kit_id": "test-kit-id"}},
+        }
+        redacted_event = before_send(event, None, self.sentry_config)
+        self.assertEqual(redacted_event["logentry"]["message"], "REDACTED SENSITIVE ERROR | test-kit-id")
+        self.assertEqual(
+            redacted_event["exception"]["values"][0]["value"],
+            json.dumps({"test": "some string", "phone": SentryConstants.REDACTION_STRING}),
+        )
+        self.assertEqual(redacted_event["extra"]["extra"]["kit_id"], "test-kit-id")
+
+    def test_initialize_sentry_default_params(self):
         """
         Test the initialize_sentry function with default parameters.
         """

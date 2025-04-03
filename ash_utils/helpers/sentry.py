@@ -2,19 +2,18 @@ import json
 from functools import partial
 
 import sentry_sdk
-from ash_utils.helpers.constants import SentryConstants
-from ash_utils.helpers.models import SentryConfig
 from loguru import logger
 from nested_lookup import nested_update
+from sentry_sdk.integrations.loguru import LoguruIntegration
 from sentry_sdk.scrubber import EventScrubber
 from sentry_sdk.types import Event
+
+from ash_utils.helpers.constants import LoguruConfigs, SentryConstants
+from ash_utils.helpers.models import SentryConfig
 
 
 def redact_logentry(event: Event, sentry_config: SentryConfig) -> Event:
     """Redacts sensitive errors from the log entry before sending to Sentry."""
-
-    config = sentry_config
-    keys_to_filter = config.keys_to_filter
 
     if "logentry" in event:
         logentry_string = json.dumps(event["logentry"])
@@ -23,11 +22,10 @@ def redact_logentry(event: Event, sentry_config: SentryConfig) -> Event:
         if SentryConstants.SENSITIVE_DATA_FLAG in logentry_string:
             event["logentry"]["message"] = f"REDACTED SENSITIVE ERROR | {extra.get('kit_id')}"  # type: ignore[reportIndexIssue]
         else:
-            for key in keys_to_filter:
+            for key in sentry_config.keys_to_filter:
                 if key in logentry_string:
                     event["logentry"]["message"] = f"REDACTED SENSITIVE ERROR | key: {key} | {extra.get('kit_id')}"  # type: ignore[reportIndexIssue]
                     break
-    logger.debug(f"before_send redacted logentry: {event}")
     return event
 
 
@@ -43,8 +41,6 @@ def try_parse_json(data_string: str) -> dict | None:
 def redact_exception(event: Event, sentry_config: SentryConfig) -> Event:
     """Redacts sensitive-tagged values or values of `keys_to_filter` in exception details."""
 
-    config = sentry_config
-    keys_to_filter = config.keys_to_filter
     for values in event.get("exception", {}).get("values", []):
         exception_value = values.get("value")
         if not exception_value:
@@ -57,7 +53,7 @@ def redact_exception(event: Event, sentry_config: SentryConfig) -> Event:
         try:
             exception_value_dict = try_parse_json(exception_value)
             if exception_value_dict:
-                for key in keys_to_filter:
+                for key in sentry_config.keys_to_filter:
                     nested_update(
                         exception_value_dict,
                         key=key,
@@ -65,14 +61,13 @@ def redact_exception(event: Event, sentry_config: SentryConfig) -> Event:
                         in_place=True,
                     )
                 values["value"] = json.dumps(exception_value_dict)
-            elif any(key in exception_value for key in keys_to_filter):
+            elif any(key in exception_value for key in sentry_config.keys_to_filter):
                 values["value"] = SentryConstants.REDACTION_STRING
         except Exception as ex:
             logger.warning(
                 f"Error encountered while redacting exception in Sentry issue. Sentry Event: {event}. Exception: {ex}"
             )
             return _remove_potential_exception_pii(event)
-    logger.debug(f"before_send redacted exception: {event}")
     return event
 
 
@@ -100,7 +95,6 @@ def before_send(event: Event, _hint, sentry_config: SentryConfig) -> Event:
     Returns:
         Event: The redacted Sentry event
     """
-    logger.debug(f"redacting sentry logs | before_send event: {event}")
     event_log_redacted = redact_logentry(event, sentry_config)
     return redact_exception(event_log_redacted, sentry_config)
 
@@ -150,7 +144,12 @@ def initialize_sentry(
     config = SentryConfig()
     prebound_before_send = partial(before_send, sentry_config=config)
 
-    default_integrations = config.default_integrations[:]
+    default_integrations = [
+        LoguruIntegration(
+            event_format=LoguruConfigs.event_log_format,
+            breadcrumb_format=LoguruConfigs.breadcrumb_log_format,
+        ),
+    ]
     if additional_integrations:
         default_integrations.extend(additional_integrations)
 

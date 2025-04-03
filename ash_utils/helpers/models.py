@@ -1,6 +1,6 @@
-from ash_utils.helpers.constants import LoguruConstants
-from pydantic import BaseModel, Field
-from sentry_sdk.integrations.loguru import LoguruIntegration
+from typing import Self
+
+from pydantic import BaseModel, Field, model_validator
 from sentry_sdk.scrubber import DEFAULT_DENYLIST, DEFAULT_PII_DENYLIST
 
 
@@ -13,12 +13,6 @@ class SentryConfig(BaseModel):
         provided by Sentry SDK.
     """
 
-    default_integrations: list = [
-        LoguruIntegration(
-            event_format=LoguruConstants.event_log_format,
-            breadcrumb_format=LoguruConstants.breadcrumb_log_format,
-        ),
-    ]
     keys_to_filter: list[str] = Field(
         default_factory=lambda: [
             "address",
@@ -38,7 +32,6 @@ class SentryConfig(BaseModel):
             "patient_city",
             "patient_email",
             "patient_state",
-            "patient_zip",
             "patient_zip",
             "patientAddress1",
             "patientAddress2",
@@ -66,15 +59,19 @@ class SentryConfig(BaseModel):
             "zip",
         ]
     )
+
     denylist: list[str] = Field(default_factory=lambda: DEFAULT_DENYLIST[:])
     pii_denylist: list[str] = Field(
         default_factory=lambda: DEFAULT_PII_DENYLIST[:],
     )
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-
+    @model_validator(mode="after")
+    def merge_sensitive_lists(self) -> Self:
+        """
+        Merges the default denylist and pii denylist with the custom keys_to_filter
+        """
         self.denylist = sorted(set(self.denylist + self.keys_to_filter))
         self.pii_denylist = sorted(
             set(self.pii_denylist + self.keys_to_filter),
         )
+        return self
