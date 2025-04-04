@@ -36,7 +36,7 @@ select = [
     "F", "E", "W", "C90", "I", "N", "S", "B", "A", "ISC", "T20", "Q", "PTH",
     "COM", "C4", "PL", "RET", "SIM", "RUF", "ARG", "ICN", "DTZ", "UP",
 ]
-ignore = ["COM812"]
+ignore = ["COM812", "PLR0913"]
 
 [build-system]
 requires = ["hatchling"]
