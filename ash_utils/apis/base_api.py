@@ -28,6 +28,7 @@ class BaseApi:
         method: HTTPMethod,
         url: str,
         body: dict[str, t.Any] | list[int] | None = None,
+        data: t.Any | None = None,
         params: dict[str, t.Any] | None = None,
         headers: dict | None = None,
     ) -> Response:
@@ -44,6 +45,7 @@ class BaseApi:
                     method=method,
                     url=url,
                     json=body,
+                    data=data,
                     params=params,
                     headers=headers,
                     follow_redirects=True,

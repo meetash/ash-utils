@@ -41,6 +41,9 @@ select = [
 ]
 ignore = ["COM812"]
 
+[tool.ruff.lint.pylint]
+max-args = 7
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
