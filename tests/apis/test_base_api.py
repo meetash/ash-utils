@@ -26,6 +26,26 @@ async def test__base_api__success(app):
     assert resp.status_code == 200
 
 
+async def test__base_api__success__with_data_instead_of_json(app):
+    request_id = uuid.uuid4()
+    request_id_var.set(request_id)
+
+    response_mock = mock.Mock(status_code=200)
+    client = mock.AsyncMock(request=mock.AsyncMock(return_value=response_mock))
+
+    api = BaseApi(client=client)
+
+    resp = await api._send_request(
+        method=HTTPMethod.POST, url="http://ashwelness.io", headers={}, data="<xml>data</xml>", params={}
+    )
+
+    assert client.request.call_args[1]["method"] == HTTPMethod.POST
+    assert client.request.call_args[1]["headers"] == {api.request_id_header_name: request_id}
+    assert client.request.call_args[1]["data"] == "<xml>data</xml>"
+    assert client.request.call_args[1]["params"] == {}
+    assert resp.status_code == 200
+
+
 async def test__base_api__request_error__exception_raised(app):
     request_id = uuid.uuid4()
     request_id_var.set(request_id)
