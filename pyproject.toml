@@ -9,6 +9,8 @@ dependencies = [
     "httpx>=0.28.1",
     "loguru>=0.7.3",
     "secweb>=1.18.1",
+    "sentry-sdk>=2.22.0",
+    "nested-lookup>=0.2.25",
 ]
 authors = [{ name = "Shakun Raman", email = "shakunroman@gmail.com" }]
 keywords = ["fastapi", "middleware", "security", "utilities"]
@@ -21,6 +23,7 @@ dev = [
     "pytest>=8.3.4",
     "ruff>=0.9.3",
     "pytest-coverage>=0.0",
+    "parameterized>=0.9.0",
 ]
 
 [tool.pyright]
