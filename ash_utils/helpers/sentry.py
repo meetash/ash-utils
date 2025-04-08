@@ -1,28 +1,26 @@
 import json
-from functools import partial
 
 import sentry_sdk
 from loguru import logger
 from nested_lookup import nested_update
 from sentry_sdk.integrations.loguru import LoguruIntegration
-from sentry_sdk.scrubber import EventScrubber
+from sentry_sdk.scrubber import DEFAULT_DENYLIST, DEFAULT_PII_DENYLIST, EventScrubber
 from sentry_sdk.types import Event
 
-from ash_utils.helpers.constants import LoguruConfigs, SentryConstants
-from ash_utils.helpers.models import SentryConfig
+from ash_utils.helpers.constants import KEYS_TO_FILTER, REDACTION_STRING, SENSITIVE_DATA_FLAG, LoguruConfigs
 
 
-def redact_logentry(event: Event, sentry_config: SentryConfig) -> Event:
+def redact_logentry(event: Event) -> Event:
     """Redacts sensitive errors from the log entry before sending to Sentry."""
 
     if "logentry" in event:
         logentry_string = json.dumps(event["logentry"])
         extra = event.get("extra", {}).get("extra", {})
 
-        if SentryConstants.SENSITIVE_DATA_FLAG in logentry_string:
+        if SENSITIVE_DATA_FLAG in logentry_string:
             event["logentry"]["message"] = f"REDACTED SENSITIVE ERROR | {extra.get('kit_id')}"  # type: ignore[reportIndexIssue]
         else:
-            for key in sentry_config.keys_to_filter:
+            for key in KEYS_TO_FILTER:
                 if key in logentry_string:
                     event["logentry"]["message"] = f"REDACTED SENSITIVE ERROR | key: {key} | {extra.get('kit_id')}"  # type: ignore[reportIndexIssue]
                     break
@@ -38,7 +36,7 @@ def try_parse_json(data_string: str) -> dict | None:
         return None
 
 
-def redact_exception(event: Event, sentry_config: SentryConfig) -> Event:
+def redact_exception(event: Event) -> Event:
     """Redacts sensitive-tagged values or values of `keys_to_filter` in exception details."""
 
     for values in event.get("exception", {}).get("values", []):
@@ -46,23 +44,23 @@ def redact_exception(event: Event, sentry_config: SentryConfig) -> Event:
         if not exception_value:
             continue
 
-        if SentryConstants.SENSITIVE_DATA_FLAG in exception_value:
-            values["value"] = SentryConstants.REDACTION_STRING
+        if SENSITIVE_DATA_FLAG in exception_value:
+            values["value"] = REDACTION_STRING
             continue
 
         try:
             exception_value_dict = try_parse_json(exception_value)
             if exception_value_dict:
-                for key in sentry_config.keys_to_filter:
+                for key in KEYS_TO_FILTER:
                     nested_update(
                         exception_value_dict,
                         key=key,
-                        value=SentryConstants.REDACTION_STRING,
+                        value=REDACTION_STRING,
                         in_place=True,
                     )
                 values["value"] = json.dumps(exception_value_dict)
-            elif any(key in exception_value for key in sentry_config.keys_to_filter):
-                values["value"] = SentryConstants.REDACTION_STRING
+            elif any(key in exception_value for key in KEYS_TO_FILTER):
+                values["value"] = REDACTION_STRING
         except Exception as ex:
             logger.warning(
                 f"Error encountered while redacting exception in Sentry issue. Sentry Event: {event}. Exception: {ex}"
@@ -84,19 +82,18 @@ def _remove_potential_exception_pii(event: Event) -> Event:
     return event
 
 
-def before_send(event: Event, _hint, sentry_config: SentryConfig) -> Event:
+def before_send(event: Event, _hint) -> Event:
     """Processes an event before sending to Sentry by redacting sensitive information.
 
     Args:
         event (Event): The Sentry event to be scrubbed.
         _hint (dict): optional dictionary containing information about the event (unused).
-        sentry_config (dict): a pydantic model of the Sentry configuration from the global config.
 
     Returns:
         Event: The redacted Sentry event
     """
-    event_log_redacted = redact_logentry(event, sentry_config)
-    return redact_exception(event_log_redacted, sentry_config)
+    event_log_redacted = redact_logentry(event)
+    return redact_exception(event_log_redacted)
 
 
 def initialize_sentry(
@@ -121,8 +118,8 @@ def initialize_sentry(
     - `include_local_variables`: Set to `False` for security reasons.
     - `send_default_pii`: Disabled (`False`) to avoid sending user PII.
     - `Event Scrubber`: Uses an internal scrubber to filter sensitive data;
-        custom denylist added to both Sentry default and PII denylist.
-    - `before_send`: Pre-bound function to sanitize logs/exceptions.
+        custom denylist added to Sentry default PII denylist.
+    - `before_send`: function to sanitize logs/exceptions in case EventScrubber misses anything.
 
     Example usage:
     ```python
@@ -141,8 +138,6 @@ def initialize_sentry(
     )
     ```
     """
-    config = SentryConfig()
-    prebound_before_send = partial(before_send, sentry_config=config)
 
     default_integrations = [
         LoguruIntegration(
@@ -152,6 +147,9 @@ def initialize_sentry(
     ]
     if additional_integrations:
         default_integrations.extend(additional_integrations)
+
+    # EventScrubber will merge pii_denylist with the default denylist at runtime
+    custom_pii_denylist = KEYS_TO_FILTER + DEFAULT_PII_DENYLIST
 
     sentry_sdk.init(
         dsn=sentry_dsn,
@@ -163,8 +161,8 @@ def initialize_sentry(
         send_default_pii=False,
         event_scrubber=EventScrubber(
             recursive=True,
-            denylist=config.denylist,
-            pii_denylist=config.pii_denylist,
+            denylist=DEFAULT_DENYLIST,
+            pii_denylist=custom_pii_denylist,
         ),
-        before_send=prebound_before_send,
+        before_send=before_send,
     )

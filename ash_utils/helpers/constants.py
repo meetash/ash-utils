@@ -1,4 +1,57 @@
+# Sentry Constants
+REDACTION_STRING = "REDACTED"
+SENSITIVE_DATA_FLAG = "SENSITIVE"
+KEYS_TO_FILTER = [
+    "address",
+    "address1",
+    "address2",
+    "city",
+    "country",
+    "dob",
+    "email",
+    "first_name",
+    "firstName",
+    "last_name",
+    "lastName",
+    "password",
+    "patient_address1",
+    "patient_address2",
+    "patient_city",
+    "patient_email",
+    "patient_state",
+    "patient_zip",
+    "patientAddress1",
+    "patientAddress2",
+    "patientCity",
+    "patientEmail",
+    "patientState",
+    "patientZip",
+    "PatientZip",
+    "phone",
+    "searchKeyword",
+    "search_keyword",
+    "shipping_address1",
+    "shipping_address2",
+    "shipping_city",
+    "shipping_email",
+    "shipping_state",
+    "shipping_zip",
+    "shippingAddress1",
+    "shippingAddress2",
+    "shippingCity",
+    "shippingEmail",
+    "shippingState",
+    "shippingZip",
+    "state",
+    "zip",
+]
+
+
 class LoguruConfigs:
+    """
+    Holds Loguru format methods and error code constant
+    """
+
     ASH_SYSTEM_ERROR_CODE = "ash-system-error"
 
     @staticmethod
@@ -25,8 +78,3 @@ class LoguruConfigs:
 
         format_str += "{message}"
         return format_str
-
-
-class SentryConstants:
-    REDACTION_STRING = "REDACTED"
-    SENSITIVE_DATA_FLAG = "SENSITIVE"

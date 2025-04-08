@@ -2,24 +2,19 @@ import json
 from unittest import IsolatedAsyncioTestCase, mock
 from unittest.mock import patch
 
-from ash_utils.helpers.constants import SentryConstants
+from ash_utils.helpers.constants import KEYS_TO_FILTER, REDACTION_STRING
 from ash_utils.helpers.sentry import (
     before_send,
+    initialize_sentry,
     redact_exception,
     redact_logentry,
     try_parse_json,
-    SentryConfig,
-    initialize_sentry,
 )
-
-from sentry_sdk.integrations.loguru import LoguruIntegration
 from parameterized import parameterized
+from sentry_sdk.integrations.loguru import LoguruIntegration
 
 
 class SentryUtilitiesTestcase(IsolatedAsyncioTestCase):
-    def setUp(self) -> None:
-        self.sentry_config = SentryConfig()
-
     def test_try_parse_json_returns_None_with_invalid_json(self):
         self.assertIsNone(try_parse_json(""))
         self.assertIsNone(try_parse_json("invalid"))
@@ -54,7 +49,7 @@ class SentryUtilitiesTestcase(IsolatedAsyncioTestCase):
             "logentry": {"message": message},
             "extra": {"extra": {"kit_id": "test-kit-id"}},
         }
-        redacted_event = redact_logentry(event, self.sentry_config)
+        redacted_event = redact_logentry(event)
         self.assertEqual(redacted_event["logentry"]["message"], redacted_message)
         self.assertEqual(redacted_event["extra"]["extra"]["kit_id"], "test-kit-id")
 
@@ -94,7 +89,7 @@ class SentryUtilitiesTestcase(IsolatedAsyncioTestCase):
             "exception": exception,
             "extra": {"extra": {"kit_id": "test-kit-id"}},
         }
-        redacted_event = redact_exception(event, self.sentry_config)
+        redacted_event = redact_exception(event)
         self.assertEqual(redacted_event["exception"], redacted_exception)
         self.assertEqual(redacted_event["extra"]["extra"]["kit_id"], "test-kit-id")
         exception_values = redacted_event["exception"]["values"]
@@ -105,8 +100,8 @@ class SentryUtilitiesTestcase(IsolatedAsyncioTestCase):
                 parsed_val = value["value"]
             if isinstance(parsed_val, dict):
                 for key, val in parsed_val.items():
-                    if key in self.sentry_config.keys_to_filter:
-                        self.assertEqual(val, SentryConstants.REDACTION_STRING)
+                    if key in KEYS_TO_FILTER:
+                        self.assertEqual(val, REDACTION_STRING)
 
     def test_redact_exception_exception(self):
         event = {
@@ -127,7 +122,7 @@ class SentryUtilitiesTestcase(IsolatedAsyncioTestCase):
             "ash_utils.helpers.sentry.nested_update",
             side_effect=Exception("Mocked exception"),
         ):
-            redacted_event = redact_exception(event, self.sentry_config)
+            redacted_event = redact_exception(event)
             self.assertIn("exception", redacted_event)
             self.assertIsInstance(redacted_event["exception"], dict)
             self.assertEqual(redacted_event["exception"], {"values": [{"type": "TestErrorType"}]})
@@ -145,7 +140,7 @@ class SentryUtilitiesTestcase(IsolatedAsyncioTestCase):
             "exception": {"values": [{"value": "exception string"}]},
             "extra": {"extra": {"kit_id": "test-kit-id"}},
         }
-        redacted_event = before_send(event, None, self.sentry_config)
+        redacted_event = before_send(event, None)
         self.assertEqual(redacted_event["logentry"]["message"], "test message")
         self.assertEqual(redacted_event["exception"], {"values": [{"value": "exception string"}]})
         self.assertEqual(redacted_event["extra"]["extra"]["kit_id"], "test-kit-id")
@@ -159,11 +154,11 @@ class SentryUtilitiesTestcase(IsolatedAsyncioTestCase):
             "exception": {"values": [{"value": json.dumps({"test": "some string", "phone": "123-456-7890"})}]},
             "extra": {"extra": {"kit_id": "test-kit-id"}},
         }
-        redacted_event = before_send(event, None, self.sentry_config)
+        redacted_event = before_send(event, None)
         self.assertEqual(redacted_event["logentry"]["message"], "REDACTED SENSITIVE ERROR | test-kit-id")
         self.assertEqual(
             redacted_event["exception"]["values"][0]["value"],
-            json.dumps({"test": "some string", "phone": SentryConstants.REDACTION_STRING}),
+            json.dumps({"test": "some string", "phone": REDACTION_STRING}),
         )
         self.assertEqual(redacted_event["extra"]["extra"]["kit_id"], "test-kit-id")
 
