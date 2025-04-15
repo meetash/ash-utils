@@ -203,3 +203,37 @@ This implementation abstracts away much of the boilerplate code required to init
 - `release`: The release version of your application.
 - `traces_sample_rate`: The sample rate for traces (default is 0.1).
 - `additional_integrations`: A list of additional Sentry integrations to include (optional) -- Loguru integration is included by default.
+
+*NOTE* You may choose to intialize Sentry yourself if you want to use a different configuration or if you want to use a different logging library. However, if you do so it is important to ensure that PII is properly sanitized in the logs and error messages. Make sure to import the `before_send` function from the helper module and use it in your Sentry configuration. The `before_send` function is responsible for sanitizing PII in the logs and error messages. It will remove any sensitive information from the logs and error messages before they are sent to Sentry.
+- `before_send`: A function that is called before sending the event to Sentry. It can be used to modify the event or filter it out. The default implementation will sanitize PII in the logs and error messages.
+- `KEYS_TO_FILTER`: A custom list of keys to filter out from the event data. This is used to remove sensitive information from the logs and error messages before they are sent to Sentry. It is recommended to use this (or your own list) to extend the default Sentry DEFAULT_PII_DENYLIST which filters only the following keys: [`x_forwarded_for`, `x_real_ip`, `ip_address`, `remote_addr`]
+
+An example implementation of this approach would look like this:
+```python
+from ash_utils.helpers.sentry import before_send, KEYS_TO_FILTER
+
+import sentry_sdk
+from sentry_sdk import EventScrubber, DEFAULT_PII_DENYLIST, DEFAULT_DENYLIST
+from sentry_sdk.integrations.logging import LoggingIntegration
+
+custom_pii_denylist = KEYS_TO_FILTER + DEFAULT_PII_DENYLIST
+
+sentry_sdk.init(
+    dsn="https://your-sentry-dsn",
+    traces_sample_rate=0.1,
+    integrations=[LoggingIntegration(
+            event_format=LoguruConfigs.event_log_format,
+            breadcrumb_format=LoguruConfigs.breadcrumb_log_format,
+        )],
+    release="1.0.0",
+    environment="production",
+    include_local_variables=False,
+    send_default_pii=False,
+    event_scrubber=EventScrubber(
+        recursive=True,
+        denylist=DEFAULT_DENY_LIST,
+        pii_denylist=custom_pii_denylist,
+    ),
+    before_send=before_send,
+)
+```
