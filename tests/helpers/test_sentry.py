@@ -23,11 +23,16 @@ class SentryUtilitiesTestcase(IsolatedAsyncioTestCase):
         [
             ("{'key': 'value'}", {"key": "value"}),
             ('{"key": "value"}', {"key": "value"}),
-            ('{"key": "value", "nested": {"key2": "value2"}}', {"key": "value", "nested": {"key2": "value2"}}),
+            (
+                '{"key": "value", "nested": {"key2": "value2"}}',
+                {"key": "value", "nested": {"key2": "value2"}},
+            ),
             ('{"key": ["value1", "value2"]}', {"key": ["value1", "value2"]}),
         ]
     )
-    def test_try_parse_json_returns_dict_with_valid_json(self, json_to_parse, expected_result):
+    def test_try_parse_json_returns_dict_with_valid_json(
+        self, json_to_parse, expected_result
+    ):
         self.assertEqual(try_parse_json(json_to_parse), expected_result)
 
     @parameterized.expand(
@@ -56,6 +61,51 @@ class SentryUtilitiesTestcase(IsolatedAsyncioTestCase):
     @parameterized.expand(
         [
             (
+                "no_logentry_provided",
+                {
+                    "exception": {"values": [{"value": "exception string"}]},
+                    "extra": {"extra": {"kit_id": "test-kit-id"}},
+                },
+            ),
+            (
+                "logentry_is_empty_dict",
+                {
+                    "exception": {"values": [{"value": "exception string"}]},
+                    "extra": {"extra": {"kit_id": "test-kit-id"}},
+                    "logentry": {},
+                },
+            ),
+            (
+                "logentry_is_None",
+                {
+                    "exception": {"values": [{"value": "exception string"}]},
+                    "extra": {"extra": {"kit_id": "test-kit-id"}},
+                    "logentry": None,
+                },
+            ),
+            (
+                "logentry_is_empty_string",
+                {
+                    "exception": {"values": [{"value": "exception string"}]},
+                    "extra": {"extra": {"kit_id": "test-kit-id"}},
+                    "logentry": "",
+                },
+            )
+        ]
+    )
+    def test_redact_logentry_no_logentry(self, _name, event):
+        expected_event = {
+            "exception": {"values": [{"value": "exception string"}]},
+            "extra": {"extra": {"kit_id": "test-kit-id"}},
+        }
+        redacted_event = redact_logentry(event)
+        for key, val in expected_event.items():
+            self.assertIn(key, redacted_event)
+            self.assertEqual(redacted_event[key], val)
+
+    @parameterized.expand(
+        [
+            (
                 {"values": [{"value": "exception string"}]},
                 {"values": [{"value": "exception string"}]},
             ),
@@ -72,13 +122,21 @@ class SentryUtilitiesTestcase(IsolatedAsyncioTestCase):
                 {
                     "values": [
                         {"value": "exception string"},
-                        {"value": json.dumps({"test": "some string", "phone": "123-456-7890"})},
+                        {
+                            "value": json.dumps(
+                                {"test": "some string", "phone": "123-456-7890"}
+                            )
+                        },
                     ]
                 },
                 {
                     "values": [
                         {"value": "exception string"},
-                        {"value": json.dumps({"test": "some string", "phone": "REDACTED"})},
+                        {
+                            "value": json.dumps(
+                                {"test": "some string", "phone": "REDACTED"}
+                            )
+                        },
                     ]
                 },
             ),
@@ -108,7 +166,9 @@ class SentryUtilitiesTestcase(IsolatedAsyncioTestCase):
             "exception": {
                 "values": [
                     {
-                        "value": json.dumps({"test": "some string", "phone": "123-456-7890"}),
+                        "value": json.dumps(
+                            {"test": "some string", "phone": "123-456-7890"}
+                        ),
                         "type": "TestErrorType",
                     }
                 ]
@@ -125,8 +185,12 @@ class SentryUtilitiesTestcase(IsolatedAsyncioTestCase):
             redacted_event = redact_exception(event)
             self.assertIn("exception", redacted_event)
             self.assertIsInstance(redacted_event["exception"], dict)
-            self.assertEqual(redacted_event["exception"], {"values": [{"type": "TestErrorType"}]})
-            self.assertEqual(redacted_event["exception"]["values"][0]["type"], "TestErrorType")
+            self.assertEqual(
+                redacted_event["exception"], {"values": [{"type": "TestErrorType"}]}
+            )
+            self.assertEqual(
+                redacted_event["exception"]["values"][0]["type"], "TestErrorType"
+            )
             for key in ["extra", "contexts", "breadcrumbs", "tags"]:
                 self.assertIn(key, redacted_event)
                 self.assertEqual(redacted_event[key], {})
@@ -142,7 +206,9 @@ class SentryUtilitiesTestcase(IsolatedAsyncioTestCase):
         }
         redacted_event = before_send(event, None)
         self.assertEqual(redacted_event["logentry"]["message"], "test message")
-        self.assertEqual(redacted_event["exception"], {"values": [{"value": "exception string"}]})
+        self.assertEqual(
+            redacted_event["exception"], {"values": [{"value": "exception string"}]}
+        )
         self.assertEqual(redacted_event["extra"]["extra"]["kit_id"], "test-kit-id")
 
     def test_before_send__sensitive_data_present__data_redacted(self):
@@ -151,11 +217,22 @@ class SentryUtilitiesTestcase(IsolatedAsyncioTestCase):
         """
         event = {
             "logentry": {"message": "test message with SENSITIVE data"},
-            "exception": {"values": [{"value": json.dumps({"test": "some string", "phone": "123-456-7890"})}]},
+            "exception": {
+                "values": [
+                    {
+                        "value": json.dumps(
+                            {"test": "some string", "phone": "123-456-7890"}
+                        )
+                    }
+                ]
+            },
             "extra": {"extra": {"kit_id": "test-kit-id"}},
         }
         redacted_event = before_send(event, None)
-        self.assertEqual(redacted_event["logentry"]["message"], "REDACTED SENSITIVE ERROR | test-kit-id")
+        self.assertEqual(
+            redacted_event["logentry"]["message"],
+            "REDACTED SENSITIVE ERROR | test-kit-id",
+        )
         self.assertEqual(
             redacted_event["exception"]["values"][0]["value"],
             json.dumps({"test": "some string", "phone": REDACTION_STRING}),
@@ -235,7 +312,10 @@ class SentryUtilitiesTestcase(IsolatedAsyncioTestCase):
             test_environment = "staging"
             mock_sqlalchemy_integration = mock.MagicMock(name="SqlalchemyIntegration")
             mock_loguru_integration = mock.MagicMock(name="LoguruIntegration")
-            test_additional_integrations = [mock_sqlalchemy_integration, mock_loguru_integration]
+            test_additional_integrations = [
+                mock_sqlalchemy_integration,
+                mock_loguru_integration,
+            ]
 
             initialize_sentry(
                 sentry_dsn=test_sentry_dsn,
@@ -245,7 +325,9 @@ class SentryUtilitiesTestcase(IsolatedAsyncioTestCase):
             )
 
             mock_init.assert_called_once()
-            self.assertIn(test_additional_integrations[0], mock_init.call_args[1]["integrations"])
+            self.assertIn(
+                test_additional_integrations[0], mock_init.call_args[1]["integrations"]
+            )
             actual_integrations = mock_init.call_args[1]["integrations"]
             self.assertEqual(len(actual_integrations), 3)
             expected_types = {LoguruIntegration}
