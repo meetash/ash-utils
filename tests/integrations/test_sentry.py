@@ -2,13 +2,13 @@ import json
 from unittest import IsolatedAsyncioTestCase, mock
 from unittest.mock import patch
 
-from ash_utils.helpers.constants import KEYS_TO_FILTER, REDACTION_STRING
-from ash_utils.helpers.sentry import (
+from ash_utils.integrations.constants import KEYS_TO_FILTER, REDACTION_STRING
+from ash_utils.integrations.sentry import (
+    _redact_exception,
+    _redact_logentry,
+    _try_parse_json,
     before_send,
     initialize_sentry,
-    redact_exception,
-    redact_logentry,
-    try_parse_json,
 )
 from parameterized import parameterized
 from sentry_sdk.integrations.loguru import LoguruIntegration
@@ -16,8 +16,8 @@ from sentry_sdk.integrations.loguru import LoguruIntegration
 
 class SentryUtilitiesTestcase(IsolatedAsyncioTestCase):
     def test_try_parse_json_returns_None_with_invalid_json(self):
-        self.assertIsNone(try_parse_json(""))
-        self.assertIsNone(try_parse_json("invalid"))
+        self.assertIsNone(_try_parse_json(""))
+        self.assertIsNone(_try_parse_json("invalid"))
 
     @parameterized.expand(
         [
@@ -31,7 +31,7 @@ class SentryUtilitiesTestcase(IsolatedAsyncioTestCase):
         ]
     )
     def test_try_parse_json_returns_dict_with_valid_json(self, json_to_parse, expected_result):
-        self.assertEqual(try_parse_json(json_to_parse), expected_result)
+        self.assertEqual(_try_parse_json(json_to_parse), expected_result)
 
     @parameterized.expand(
         [
@@ -52,7 +52,7 @@ class SentryUtilitiesTestcase(IsolatedAsyncioTestCase):
             "logentry": {"message": message},
             "extra": {"extra": {"kit_id": "test-kit-id"}},
         }
-        redacted_event = redact_logentry(event)
+        redacted_event = _redact_logentry(event)
         self.assertEqual(redacted_event["logentry"]["message"], redacted_message)
         self.assertEqual(redacted_event["extra"]["extra"]["kit_id"], "test-kit-id")
 
@@ -96,7 +96,7 @@ class SentryUtilitiesTestcase(IsolatedAsyncioTestCase):
             "exception": {"values": [{"value": "exception string"}]},
             "extra": {"extra": {"kit_id": "test-kit-id"}},
         }
-        redacted_event = redact_logentry(event)
+        redacted_event = _redact_logentry(event)
         for key, val in expected_event.items():
             self.assertIn(key, redacted_event)
             self.assertEqual(redacted_event[key], val)
@@ -130,6 +130,23 @@ class SentryUtilitiesTestcase(IsolatedAsyncioTestCase):
                     ]
                 },
             ),
+            (
+                {"values": [{"value": "shipping_email invalid: abc@defg.edu"}]},
+                {"values": [{"value": "REDACTED"}]},
+            ),
+            (
+                {"values": [{"value": ""}]},
+                {"values": [{"value": ""}]},
+            ),
+            (
+                {
+                    "values": [
+                        {"value": ""},
+                        {"value": "shipping_email invalid: abc@defg.edu"},
+                    ]
+                },
+                {"values": [{"value": ""}, {"value": "REDACTED"}]},
+            ),
         ]
     )
     def test_redact_exception(self, exception, redacted_exception):
@@ -137,7 +154,7 @@ class SentryUtilitiesTestcase(IsolatedAsyncioTestCase):
             "exception": exception,
             "extra": {"extra": {"kit_id": "test-kit-id"}},
         }
-        redacted_event = redact_exception(event)
+        redacted_event = _redact_exception(event)
         self.assertEqual(redacted_event["exception"], redacted_exception)
         self.assertEqual(redacted_event["extra"]["extra"]["kit_id"], "test-kit-id")
         exception_values = redacted_event["exception"]["values"]
@@ -150,6 +167,23 @@ class SentryUtilitiesTestcase(IsolatedAsyncioTestCase):
                 for key, val in parsed_val.items():
                     if key in KEYS_TO_FILTER:
                         self.assertEqual(val, REDACTION_STRING)
+
+    def test_redact_exception_handles_none_value(self):
+        none_value_event = {
+            "exception": {
+                "values": [
+                    {"value": None},
+                    {"value": "exception string"},
+                ]
+            },
+            "extra": {"extra": {"kit_id": "test-kit-id"}},
+        }
+        redacted_event = _redact_exception(none_value_event)
+        self.assertEqual(
+            redacted_event["exception"],
+            {"values": [{"value": None}, {"value": "exception string"}]},
+        )
+        self.assertEqual(redacted_event["extra"]["extra"]["kit_id"], "test-kit-id")
 
     def test_redact_exception_exception(self):
         event = {
@@ -167,10 +201,10 @@ class SentryUtilitiesTestcase(IsolatedAsyncioTestCase):
             "tags": {"tag_key": "tag_value"},
         }
         with patch(
-            "ash_utils.helpers.sentry.nested_update",
+            "ash_utils.integrations.sentry.nested_update",
             side_effect=Exception("Mocked exception"),
         ):
-            redacted_event = redact_exception(event)
+            redacted_event = _redact_exception(event)
             self.assertIn("exception", redacted_event)
             self.assertIsInstance(redacted_event["exception"], dict)
             self.assertEqual(redacted_event["exception"], {"values": [{"type": "TestErrorType"}]})
@@ -217,7 +251,7 @@ class SentryUtilitiesTestcase(IsolatedAsyncioTestCase):
         """
         Test the initialize_sentry function with default parameters.
         """
-        with patch("ash_utils.helpers.sentry.sentry_sdk.init") as mock_init:
+        with patch("ash_utils.integrations.sentry.sentry_sdk.init") as mock_init:
             test_sentry_dsn = "https://test-dsn.com"
             test_release = "0.2.0"
             test_environment = "staging"
@@ -249,7 +283,7 @@ class SentryUtilitiesTestcase(IsolatedAsyncioTestCase):
         """
         Test the initialize_sentry function with a user passed traces_sample_rate.
         """
-        with patch("ash_utils.helpers.sentry.sentry_sdk.init") as mock_init:
+        with patch("ash_utils.integrations.sentry.sentry_sdk.init") as mock_init:
             test_sentry_dsn = "https://test-dsn.com"
             test_release = "0.2.0"
             test_environment = "staging"
@@ -280,7 +314,7 @@ class SentryUtilitiesTestcase(IsolatedAsyncioTestCase):
         """
         Test the initialize_sentry function with additional integrations.
         """
-        with patch("ash_utils.helpers.sentry.sentry_sdk.init") as mock_init:
+        with patch("ash_utils.integrations.sentry.sentry_sdk.init") as mock_init:
             test_sentry_dsn = "https://test-dsn.com"
             test_release = "0.2.0"
             test_environment = "staging"

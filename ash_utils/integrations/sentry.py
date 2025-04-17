@@ -7,10 +7,10 @@ from sentry_sdk.integrations.loguru import LoguruIntegration
 from sentry_sdk.scrubber import DEFAULT_DENYLIST, DEFAULT_PII_DENYLIST, EventScrubber
 from sentry_sdk.types import Event
 
-from ash_utils.helpers.constants import KEYS_TO_FILTER, REDACTION_STRING, SENSITIVE_DATA_FLAG, LoguruConfigs
+from ash_utils.integrations.constants import KEYS_TO_FILTER, REDACTION_STRING, SENSITIVE_DATA_FLAG, LoguruConfigs
 
 
-def redact_logentry(event: Event) -> Event:
+def _redact_logentry(event: Event) -> Event:
     """Redacts sensitive errors from the log entry before sending to Sentry."""
 
     if "logentry" in event:
@@ -27,7 +27,7 @@ def redact_logentry(event: Event) -> Event:
     return event
 
 
-def try_parse_json(data_string: str) -> dict | None:
+def _try_parse_json(data_string: str) -> dict | None:
     """Attempts to parse a string as JSON. Returns a dictionary if successful, otherwise None."""
 
     try:
@@ -36,7 +36,7 @@ def try_parse_json(data_string: str) -> dict | None:
         return None
 
 
-def redact_exception(event: Event) -> Event:
+def _redact_exception(event: Event) -> Event:
     """Redacts sensitive-tagged values or values of `keys_to_filter` in exception details."""
 
     for values in event.get("exception", {}).get("values", []):
@@ -49,7 +49,7 @@ def redact_exception(event: Event) -> Event:
             continue
 
         try:
-            exception_value_dict = try_parse_json(exception_value)
+            exception_value_dict = _try_parse_json(exception_value)
             if exception_value_dict:
                 for key in KEYS_TO_FILTER:
                     nested_update(
@@ -61,17 +61,15 @@ def redact_exception(event: Event) -> Event:
                 values["value"] = json.dumps(exception_value_dict)
             elif any(key in exception_value for key in KEYS_TO_FILTER):
                 values["value"] = REDACTION_STRING
-        except Exception as ex:
-            logger.warning(
-                f"Error encountered while redacting exception in Sentry issue. Sentry Event: {event}. Exception: {ex}"
-            )
+        except Exception:
+            logger.warning("Unhandled error encountered while redacting the exception for a Sentry issue.")
             return _remove_potential_exception_pii(event)
     return event
 
 
 def _remove_potential_exception_pii(event: Event) -> Event:
     """Removes potential PII from the exception context in the Sentry event.
-    Only runs if the `redact_exception` function fails
+    Only runs if the `_redact_exception` function fails
     """
     if "exception" in event and isinstance(event["exception"], dict):
         error_type = event["exception"]["values"][0]["type"]
@@ -82,7 +80,7 @@ def _remove_potential_exception_pii(event: Event) -> Event:
     return event
 
 
-def before_send(event: Event, _hint) -> Event:
+def before_send(event: Event, _hint: dict) -> Event:
     """Processes an event before sending to Sentry by redacting sensitive information.
 
     Args:
@@ -92,8 +90,8 @@ def before_send(event: Event, _hint) -> Event:
     Returns:
         Event: The redacted Sentry event
     """
-    event_log_redacted = redact_logentry(event)
-    return redact_exception(event_log_redacted)
+    event_log_redacted = _redact_logentry(event)
+    return _redact_exception(event_log_redacted)
 
 
 def initialize_sentry(
@@ -123,7 +121,7 @@ def initialize_sentry(
 
     Example usage:
     ```python
-    from ash_utils.helpers.sentry import initialize_sentry
+    from ash_utils.integrations.sentry import initialize_sentry
     from sentry_sdk.integrations.fastapi import FastAPIIntegration
     from sentry_sdk.integrations.sqlalchemy import SqlalchemyIntegration
 

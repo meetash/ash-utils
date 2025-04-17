@@ -179,7 +179,7 @@ The BaseApi class provides two custom exceptions:
 *Purpose*: A standard initialization of Sentry for error tracking and proper PII sanitization across projects.
 
 ```python
-from ash_utils.helpers.sentry import initialize_sentry
+from ash_utils.integrations.sentry import initialize_sentry
 
 initialize_sentry(
     # with all defaults
@@ -210,18 +210,18 @@ This implementation abstracts away much of the boilerplate code required to init
 
 An example implementation of this approach would look like this:
 ```python
-from ash_utils.helpers.sentry import before_send, KEYS_TO_FILTER
+from ash_utils.integrations.sentry import before_send, KEYS_TO_FILTER
 
 import sentry_sdk
 from sentry_sdk import EventScrubber, DEFAULT_PII_DENYLIST, DEFAULT_DENYLIST
-from sentry_sdk.integrations.logging import LoggingIntegration
+from sentry_sdk.integrations.logging import LoguruIntegration
 
 custom_pii_denylist = KEYS_TO_FILTER + DEFAULT_PII_DENYLIST
 
 sentry_sdk.init(
     dsn="https://your-sentry-dsn",
     traces_sample_rate=0.1,
-    integrations=[LoggingIntegration(
+    integrations=[LoguruIntegration(
             event_format=LoguruConfigs.event_log_format,
             breadcrumb_format=LoguruConfigs.breadcrumb_log_format,
         )],
@@ -231,7 +231,7 @@ sentry_sdk.init(
     send_default_pii=False,
     event_scrubber=EventScrubber(
         recursive=True,
-        denylist=DEFAULT_DENY_LIST,
+        denylist=DEFAULT_DENYLIST,
         pii_denylist=custom_pii_denylist,
     ),
     before_send=before_send,
