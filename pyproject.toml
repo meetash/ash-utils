@@ -3,7 +3,7 @@ name = "ashwelness-utils"
 version = "0.2.0"
 description = "Python library containing common utilities used across various ASH projects."
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.11,<4.0"
 dependencies = [
     "fastapi>=0.115.7",
     "httpx>=0.28.1",
@@ -13,7 +13,7 @@ dependencies = [
     "nested-lookup>=0.2.25",
 ]
 authors = [{ name = "Shakun Raman", email = "shakunroman@gmail.com" }]
-keywords = ["fastapi", "middleware", "security", "utilities"]
+keywords = ["fastapi", "middleware", "security", "utilities", "integrations", "sentry"]
 
 
 [dependency-groups]
