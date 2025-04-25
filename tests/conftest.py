@@ -20,4 +20,8 @@ def app():
     async def root():
         raise Exception
 
+    @app.post("/error-json")
+    async def root():
+        raise Exception
+
     return app
