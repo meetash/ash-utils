@@ -161,6 +161,7 @@ Middleware Configuration Options:
   - `header_name`: Custom header name for request ID (default: X-Request-ID)
 - BaseApi Configuration
   - `request_id_header_name`: Header name for request ID propagation (default: X-Request-ID)
+  - `context_keys`: List of keys that should be searched in the request body and added to the logger context when the exception is reported (eg: `["orderId", "kitId"]`). The key will be converted to snake case when added to the logger context.
 
 
 ### Error Handling
@@ -260,8 +261,8 @@ create_support_ticket("Problem with kit processing", ticket)
 
 # Or with a different log level
 create_support_ticket(
-    message="Non-critical issue with kit", 
-    ticket_data=ticket, 
+    message="Non-critical issue with kit",
+    ticket_data=ticket,
     log_level=LogLevel.WARNING
 )
 ```
