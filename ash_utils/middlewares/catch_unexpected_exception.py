@@ -1,10 +1,11 @@
+import json
 import re
 from typing import cast
 
 from fastapi import Request, status
 from fastapi.responses import JSONResponse
 from loguru import logger
-from starlette.types import ASGIApp
+from starlette.types import ASGIApp, Receive
 
 
 class CatchUnexpectedExceptionsMiddleware:
@@ -25,12 +26,13 @@ class CatchUnexpectedExceptionsMiddleware:
             await self.app(scope, receive, send)
             return
 
-        request = Request(scope, receive)
+        receive_proxy = ReceiveProxy(receive=receive)
 
         try:
-            await self.app(scope, receive, send)
+            await self.app(scope, cast(Receive, receive_proxy), send)
         except Exception:
-            context = await self._extract_request_info(request)
+            request = Request(scope, cast(Receive, receive_proxy))
+            context = await self._extract_request_info(request, receive_proxy)
             with logger.contextualize(**context):
                 logger.exception(f"Unexpected exception. Url: {request.url}")
             response = JSONResponse(
@@ -40,7 +42,7 @@ class CatchUnexpectedExceptionsMiddleware:
             await response(scope, receive, send)
             return
 
-    async def _extract_request_info(self, request: Request) -> dict[str, str]:
+    async def _extract_request_info(self, request: Request, receive_proxy: "ReceiveProxy") -> dict[str, str]:
         """
         Extracts specified keys from the request data or query parameters.
 
@@ -51,7 +53,8 @@ class CatchUnexpectedExceptionsMiddleware:
             A dictionary containing the extracted key-value pairs.
         """
         try:
-            data = await request.json()
+            body = await self._get_request_body(request, receive_proxy)
+            data = json.loads(body)
         except Exception:
             data = cast(dict, request.query_params)
 
@@ -61,6 +64,23 @@ class CatchUnexpectedExceptionsMiddleware:
             if value is not None:
                 context[_to_snake(key)] = value
         return context
+
+    async def _get_request_body(self, request: Request, receive_proxy: "ReceiveProxy") -> bytes:
+        """
+        Returns the request body, either from the cache or by reading from the stream.
+        This is necessary because the request body can only be read once.
+
+        Args:
+            request: The incoming request object.
+            receive_proxy: The proxy object to handle the request body.
+        """
+
+        if not receive_proxy.has_body():
+            logger.debug("Request body not cached, consuming it now.")
+            return await request.body()
+
+        logger.debug("Request body already cached, using cached value.")
+        return receive_proxy.cached_body
 
 
 def _find_key_in_dict(data: dict, key: str) -> str | None:
@@ -104,3 +124,25 @@ def _to_snake(camel: str) -> str:
     # Replace hyphens with underscores to handle kebab-case
     snake = snake.replace("-", "_")
     return snake.lower()
+
+
+class ReceiveProxy:
+    """Class that caches the request body so that it can be used later."""
+
+    def __init__(self, receive: Receive):
+        self._receive = receive
+        self.cached_body = b""
+        self._consumed = False
+
+    async def __call__(self):
+        message = await self._receive()
+        if message["type"] == "http.request":
+            chunk = message.get("body", b"")
+            self.cached_body += chunk
+            if not message.get("more_body", False):
+                self._consumed = True
+        return message
+
+    def has_body(self) -> bool:
+        """Check if the body has been consumed."""
+        return self._consumed

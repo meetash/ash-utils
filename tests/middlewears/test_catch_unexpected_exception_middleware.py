@@ -1,5 +1,6 @@
 from unittest.mock import patch
 
+import pytest
 from ash_utils.middlewares import CatchUnexpectedExceptionsMiddleware
 from fastapi.testclient import TestClient
 
@@ -34,7 +35,8 @@ def test__catch_unexpected_exception__success(app):
     assert resp.json() == {"detail": error_message}
 
 
-def test__catch_unexpected_exception__context_data__success(app):
+@pytest.mark.parametrize("read_body", [True, False])
+def test__catch_unexpected_exception__context_data__success(app, read_body):
     error_message = "Internal error"
     status_code = 400
     app.add_middleware(
@@ -45,7 +47,9 @@ def test__catch_unexpected_exception__context_data__success(app):
     )
 
     with patch("ash_utils.middlewares.catch_unexpected_exception.logger.contextualize") as mock_contextualize:
-        resp = TestClient(app, raise_server_exceptions=False).post("/error-json", json={"key": {"nested": "value"}})
+        resp = TestClient(app, raise_server_exceptions=False).post(
+            "/error-json", params={"read_body": read_body}, json={"key": {"nested": "value"}}
+        )
         mock_contextualize.assert_called_once_with(nested="value")
 
     assert resp.status_code == status_code
