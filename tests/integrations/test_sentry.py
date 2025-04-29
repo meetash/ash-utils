@@ -266,6 +266,7 @@ class SentryUtilitiesTestcase(IsolatedAsyncioTestCase):
             mock_init.assert_called_once_with(
                 dsn=test_sentry_dsn,
                 traces_sample_rate=0.1,
+                sample_rate=1.0,
                 integrations=mock.ANY,
                 release=test_release,
                 environment=test_environment,
@@ -300,6 +301,7 @@ class SentryUtilitiesTestcase(IsolatedAsyncioTestCase):
             mock_init.assert_called_once_with(
                 dsn=test_sentry_dsn,
                 traces_sample_rate=test_traces_sample_rate,
+                sample_rate=1.0,
                 integrations=mock.ANY,
                 release=test_release,
                 environment=test_environment,
