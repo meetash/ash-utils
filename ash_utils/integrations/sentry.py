@@ -1,4 +1,5 @@
 import json
+from functools import partial
 
 import sentry_sdk
 from loguru import logger
@@ -100,6 +101,7 @@ def initialize_sentry(
     release: str,
     traces_sample_rate: float = 0.1,
     additional_integrations: list | None = None,
+    context_keys: list[str] | None = None,
 ):
     """Initializes the Sentry SDK with the provided configuration.
 
@@ -111,6 +113,8 @@ def initialize_sentry(
             defaults to 0.1 if not passed.
         `additional_integrations` (list): OPTIONAL - Additional Sentry integrations to include;
             integrations defaults to LoguruIntegration() if not passed.
+        `context_keys` (list): OPTIONAL - List of keys to include in the error message;
+            defaults to `["code", "kit_id", "event"]` if not passed.
 
     #### Defaults Applied Automatically:
     - `include_local_variables`: Set to `False` for security reasons.
@@ -137,9 +141,12 @@ def initialize_sentry(
     ```
     """
 
+    if not context_keys:
+        context_keys = ["code", "kit_id", "event"]
+
     default_integrations = [
         LoguruIntegration(
-            event_format=LoguruConfigs.event_log_format,
+            event_format=partial(LoguruConfigs.event_log_format, context_keys=context_keys),
             breadcrumb_format=LoguruConfigs.breadcrumb_log_format,
         ),
     ]

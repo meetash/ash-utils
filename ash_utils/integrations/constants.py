@@ -1,3 +1,5 @@
+from pydantic.alias_generators import to_snake
+
 # Sentry Constants
 REDACTION_STRING = "REDACTED"
 SENSITIVE_DATA_FLAG = "SENSITIVE"
@@ -65,15 +67,24 @@ class LoguruConfigs:
         return "{message} | {extra}"
 
     @staticmethod
-    def event_log_format(record):
+    def event_log_format(record, context_keys: list[str]):
         """
         Returns a formatted string for loguru events.
         :param record: The record object.
         """
-        record["extra"]["code"] = record["extra"].get("code") or LoguruConfigs.ASH_SYSTEM_ERROR_CODE
+
+        if "code" not in context_keys:
+            context_keys.insert(0, "code")
+
+        if "code" not in record["extra"] and (exception_info := record.get("exception")):
+            exception = exception_info[1]
+            record["extra"]["code"] = getattr(exception, "code", LoguruConfigs.ASH_SYSTEM_ERROR_CODE)
+        else:
+            record["extra"]["code"] = record["extra"].get("code") or LoguruConfigs.ASH_SYSTEM_ERROR_CODE
+
         format_str = ""
-        for key in ["code", "kit_id", "event"]:
-            if value := record["extra"].get(key):
+        for key in context_keys:
+            if value := record["extra"].get(to_snake(key)):
                 format_str += f"[{value}] "
 
         format_str += "{message}"
