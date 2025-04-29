@@ -1,8 +1,8 @@
 import json
 from unittest import IsolatedAsyncioTestCase, mock
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
-from ash_utils.integrations.constants import KEYS_TO_FILTER, REDACTION_STRING
+from ash_utils.integrations.constants import KEYS_TO_FILTER, REDACTION_STRING, LoguruConfigs
 from ash_utils.integrations.sentry import (
     _redact_exception,
     _redact_logentry,
@@ -342,3 +342,27 @@ class SentryUtilitiesTestcase(IsolatedAsyncioTestCase):
                 expected_types.issubset(actual_types),
                 f"Missing expected integrations. Found only: {actual_types}",
             )
+
+    def test_event_format(self):
+        record = {
+            "extra": {
+                "code": "test_code",
+                "kit_id": "test_kit_id",
+                "event": "test_event",
+                "another_key": "another_value",
+            }
+        }
+        message = LoguruConfigs.event_log_format(record, ["code", "kit_id", "event"])
+        self.assertEqual(message, "[test_code] [test_kit_id] [test_event] {message}")
+
+    def test_event_format_exception(self):
+        record = {
+            "exception": (None, MagicMock(code="some-code")),
+            "extra": {
+                "kit_id": "test_kit_id",
+                "event": "test_event",
+                "another_key": "another_value",
+            },
+        }
+        message = LoguruConfigs.event_log_format(record, ["code", "kit_id", "event"])
+        self.assertEqual(message, "[some-code] [test_kit_id] [test_event] {message}")
