@@ -1,7 +1,7 @@
 import unittest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
-from ash_utils.support import creat_support_ticket, LogLevel, SupportTicketDTO
+from ash_utils.support import create_support_ticket, LogLevel
 from ash_utils.support.ticket import SupportTicketDTO
 
 
@@ -50,7 +50,7 @@ class CreateSupportTicketTestCase(unittest.TestCase):
             issue_type="kit-issue"
         )
         
-        creat_support_ticket(message, ticket)
+        create_support_ticket(message, ticket)
         
         mock_logger.log.assert_called_with(LogLevel.ERROR, message, support_ticket_data={
             "kit_id": "AW12345678",
@@ -68,7 +68,7 @@ class CreateSupportTicketTestCase(unittest.TestCase):
             issue_type="kit-issue"
         )
         
-        creat_support_ticket(message, ticket, log_level=LogLevel.WARNING)
+        create_support_ticket(message, ticket, log_level=LogLevel.WARNING)
         
         mock_logger.log.assert_called_with(LogLevel.WARNING, message, support_ticket_data={
             "kit_id": "AW12345678",
@@ -89,7 +89,7 @@ class CreateSupportTicketTestCase(unittest.TestCase):
             custom_fields={"lab_id": "123", "sample_type": "blood"}
         )
         
-        creat_support_ticket(message, ticket)
+        create_support_ticket(message, ticket)
         
         expected_ticket_dict = {
             "kit_id": "AW12345678",

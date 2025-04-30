@@ -24,7 +24,7 @@ class SupportTicketDTO:
     custom_fields: dict[str, t.Any] | None = None
 
 
-def creat_support_ticket(message: str, ticket_data: SupportTicketDTO, log_level: LogLevel = LogLevel.ERROR):
+def create_support_ticket(message: str, ticket_data: SupportTicketDTO, log_level: LogLevel = LogLevel.ERROR):
     """
     This function logs a message along with a support ticket data using Loguru.
     The ticket data is attached as an extra field for better log searching and analysis.

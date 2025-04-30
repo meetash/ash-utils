@@ -244,7 +244,7 @@ sentry_sdk.init(
 *Purpose:* Standardized method for creating and logging support tickets across services.
 
 ```python
-from ash_utils.support import creat_support_ticket, LogLevel, SupportTicketDTO
+from ash_utils.support import create_support_ticket, LogLevel, SupportTicketDTO
 
 # Create a support ticket DTO
 ticket = SupportTicketDTO(
@@ -256,10 +256,10 @@ ticket = SupportTicketDTO(
 )
 
 # Log the ticket with default ERROR level
-creat_support_ticket("Problem with kit processing", ticket)
+create_support_ticket("Problem with kit processing", ticket)
 
 # Or with a different log level
-creat_support_ticket(
+create_support_ticket(
     message="Non-critical issue with kit", 
     ticket_data=ticket, 
     log_level=LogLevel.WARNING
