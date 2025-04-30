@@ -9,6 +9,7 @@ Python library containing common utilities used across various ASH projects.
 3. **BaseApi** - Base HTTP client with built-in error handling and request ID propagation
 4. **configure_security_headers** - Function provides a pre-configured security header setup for FastAPI applications following security best practices.
 5. **Initialize Sentry** - Function to initialize Sentry for error tracking and proper PII sanitization in a project.
+6. **Support Ticket** - Standardized support ticket creation and logging functionality.
 
 ## Installation
 
@@ -237,3 +238,36 @@ sentry_sdk.init(
     before_send=before_send,
 )
 ```
+
+6. Support Ticket
+
+*Purpose:* Standardized method for creating and logging support tickets across services.
+
+```python
+from ash_utils.support import create_support_ticket, LogLevel, SupportTicketDTO
+
+# Create a support ticket DTO
+ticket = SupportTicketDTO(
+    kit_id="AW12345678",
+    issue_type="kit-issue",
+    partner_id="partner-123",
+    message="Result is blocked by lab",
+    custom_fields={"lab_id": "123", "sample_type": "blood"}
+)
+
+# Log the ticket with default ERROR level
+create_support_ticket("Problem with kit processing", ticket)
+
+# Or with a different log level
+create_support_ticket(
+    message="Non-critical issue with kit", 
+    ticket_data=ticket, 
+    log_level=LogLevel.WARNING
+)
+```
+
+The support ticket functionality provides:
+- Standardized ticket format with `SupportTicketDTO`
+- Log level customization using the `LogLevel` enum
+- Structured logging of ticket data for better searchability
+- Seamless integration with Loguru for consistent log format
