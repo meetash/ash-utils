@@ -49,8 +49,11 @@ def create_support_ticket(message: str, ticket_data: SupportTicketDTO, log_level
     Example:
         >>> ticket = SupportTicketDTO(
         ...     kit_id="AW12345678",
-        ...     ticket_type="kit-issue",
-        ...     message="Result is blocked by lab"
+        ...     ticket_type="escalate-lab-event-kit-issue",
+        ...     partner_id="partner-123",
+        ...     subject="Issue with kit processing",
+        ...     message_body="Result is blocked by lab",
+        ...     custom_fields={"lab_id": "123", "sample_type": "blood"}
         ... )
         >>> create_support_ticket("Some issue with the lab", ticket)
     """
