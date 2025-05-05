@@ -1,8 +1,7 @@
-import typing as t
-from dataclasses import dataclass, asdict
 from enum import StrEnum
 
 from loguru import logger
+from pydantic import BaseModel, Field
 
 
 class LogLevel(StrEnum):
@@ -15,13 +14,25 @@ class LogLevel(StrEnum):
     CRITICAL = "CRITICAL"
 
 
-@dataclass
-class SupportTicketDTO:
+class PriorityLevel(StrEnum):
+    """
+    Constants that map to the priority levels in Zendesk
+    """
+
+    P0 = "p0"
+    P1 = "p1"
+    P2 = "p2"
+    P3 = "p3"
+
+
+class SupportTicketDTO(BaseModel):
     kit_id: str
     issue_type: str
+    subject: str
+    message_body: str
+    custom_fields: dict = Field(default_factory=dict)
     partner_id: str | None = None
-    message: str | None = None
-    custom_fields: dict[str, t.Any] | None = None
+    priority: PriorityLevel = PriorityLevel.P3
 
 
 def create_support_ticket(message: str, ticket_data: SupportTicketDTO, log_level: LogLevel = LogLevel.ERROR):
@@ -43,4 +54,5 @@ def create_support_ticket(message: str, ticket_data: SupportTicketDTO, log_level
         ... )
         >>> create_support_ticket("Some issue with the lab", ticket)
     """
-    logger.log(log_level, message, support_ticket_data=asdict(ticket_data))
+    ticket_data.subject = f"{ticket_data.priority.upper()}: {ticket_data.kit_id} {ticket_data.subject}"
+    logger.log(log_level, message, support_ticket_data=ticket_data.model_dump())
