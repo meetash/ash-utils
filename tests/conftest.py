@@ -1,5 +1,5 @@
 import pytest
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from loguru import logger
 
 
@@ -18,6 +18,12 @@ def app():
 
     @app.get("/error")
     async def root():
+        raise Exception
+
+    @app.post("/error-json")
+    async def root(request: Request, read_body: bool = False):
+        if read_body:
+            await request.json()
         raise Exception
 
     return app
