@@ -8,7 +8,7 @@ from ash_utils.support.ticket import SupportTicketDTO
 class CreateSupportTicketTestCase(unittest.TestCase):
     def test__support_ticket_dto__all_fields_provided__creates_with_proper_attributes(self):
         kit_id = "AW12345678"
-        issue_type = "kit-issue"
+        ticket_type = "kit-issue"
         partner_id = "partner-123"
         subject = "Sample Subject"
         message_body = "Result is blocked by lab"
@@ -16,7 +16,7 @@ class CreateSupportTicketTestCase(unittest.TestCase):
 
         ticket = SupportTicketDTO(
             kit_id=kit_id,
-            issue_type=issue_type,
+            ticket_type=ticket_type,
             partner_id=partner_id,
             subject=subject,
             message_body=message_body,
@@ -24,7 +24,7 @@ class CreateSupportTicketTestCase(unittest.TestCase):
         )
 
         self.assertEqual(ticket.kit_id, kit_id)
-        self.assertEqual(ticket.issue_type, issue_type)
+        self.assertEqual(ticket.ticket_type, ticket_type)
         self.assertEqual(ticket.partner_id, partner_id)
         self.assertEqual(ticket.subject, subject)
         self.assertEqual(ticket.message_body, message_body)
@@ -32,17 +32,17 @@ class CreateSupportTicketTestCase(unittest.TestCase):
 
     def test__support_ticket_dto__only_required_fields__optional_fields_are_none(self):
         kit_id = "AW12345678"
-        issue_type = "kit-issue"
+        ticket_type = "kit-issue"
 
         ticket = SupportTicketDTO(
             kit_id=kit_id,
-            issue_type=issue_type,
+            ticket_type=ticket_type,
             subject="Sample Subject",
             message_body="Result is blocked by lab",
         )
 
         self.assertEqual(ticket.kit_id, kit_id)
-        self.assertEqual(ticket.issue_type, issue_type)
+        self.assertEqual(ticket.ticket_type, ticket_type)
         self.assertIsNone(ticket.partner_id)
         self.assertEqual(ticket.custom_fields, {})
         self.assertEqual(ticket.priority, "p3")
@@ -52,7 +52,7 @@ class CreateSupportTicketTestCase(unittest.TestCase):
         message = "Problem with kit processing"
         ticket = SupportTicketDTO(
             kit_id="AW12345678",
-            issue_type="kit-issue",
+            ticket_type="kit-issue",
             subject="Sample Subject",
             message_body="Result is blocked by lab",
         )
@@ -64,7 +64,7 @@ class CreateSupportTicketTestCase(unittest.TestCase):
             message,
             support_ticket_data={
                 "kit_id": "AW12345678",
-                "issue_type": "kit-issue",
+                "ticket_type": "kit-issue",
                 "partner_id": None,
                 "subject": "P3: AW12345678 Sample Subject",
                 "message_body": "Result is blocked by lab",
@@ -78,7 +78,7 @@ class CreateSupportTicketTestCase(unittest.TestCase):
         message = "Non-critical issue with kit"
         ticket = SupportTicketDTO(
             kit_id="AW12345678",
-            issue_type="kit-issue",
+            ticket_type="kit-issue",
             subject="Sample Subject",
             message_body="Result is blocked by lab",
         )
@@ -90,7 +90,7 @@ class CreateSupportTicketTestCase(unittest.TestCase):
             message,
             support_ticket_data={
                 "kit_id": "AW12345678",
-                "issue_type": "kit-issue",
+                "ticket_type": "kit-issue",
                 "partner_id": None,
                 "subject": "P3: AW12345678 Sample Subject",
                 "message_body": "Result is blocked by lab",
@@ -104,7 +104,7 @@ class CreateSupportTicketTestCase(unittest.TestCase):
         message = "Problem with kit processing"
         ticket = SupportTicketDTO(
             kit_id="AW12345678",
-            issue_type="kit-issue",
+            ticket_type="kit-issue",
             partner_id="partner-123",
             subject="Sample Subject",
             message_body="Result is blocked by lab",
@@ -115,7 +115,7 @@ class CreateSupportTicketTestCase(unittest.TestCase):
 
         expected_ticket_dict = {
             "kit_id": "AW12345678",
-            "issue_type": "kit-issue",
+            "ticket_type": "kit-issue",
             "partner_id": "partner-123",
             "subject": "P3: AW12345678 Sample Subject",
             "message_body": "Result is blocked by lab",

@@ -249,9 +249,10 @@ from ash_utils.support import create_support_ticket, LogLevel, SupportTicketDTO
 # Create a support ticket DTO
 ticket = SupportTicketDTO(
     kit_id="AW12345678",
-    issue_type="kit-issue",
+    ticket_type="escalate-lab-event-kit-issue",
     partner_id="partner-123",
-    message="Result is blocked by lab",
+    subject="Issue with kit processing",
+    message_body="Result is blocked by lab",
     custom_fields={"lab_id": "123", "sample_type": "blood"}
 )
 

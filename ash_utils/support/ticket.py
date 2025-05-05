@@ -27,7 +27,7 @@ class PriorityLevel(StrEnum):
 
 class SupportTicketDTO(BaseModel):
     kit_id: str
-    issue_type: str
+    ticket_type: str
     subject: str
     message_body: str
     custom_fields: dict = Field(default_factory=dict)
@@ -49,7 +49,7 @@ def create_support_ticket(message: str, ticket_data: SupportTicketDTO, log_level
     Example:
         >>> ticket = SupportTicketDTO(
         ...     kit_id="AW12345678",
-        ...     issue_type="kit-issue",
+        ...     ticket_type="kit-issue",
         ...     message="Result is blocked by lab"
         ... )
         >>> create_support_ticket("Some issue with the lab", ticket)
