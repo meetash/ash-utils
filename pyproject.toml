@@ -1,6 +1,6 @@
 [project]
 name = "ashwelness-utils"
-version = "0.2.0"
+version = "0.1.4"
 description = "Python library containing common utilities used across various ASH projects."
 readme = "README.md"
 requires-python = ">=3.11,<4.0"
