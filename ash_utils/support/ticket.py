@@ -57,5 +57,4 @@ def create_support_ticket(message: str, ticket_data: SupportTicketDTO, log_level
         ... )
         >>> create_support_ticket("Some issue with the lab", ticket)
     """
-    ticket_data.subject = f"{ticket_data.priority.upper()}: {ticket_data.kit_id} {ticket_data.subject}"
     logger.log(log_level, message, support_ticket_data=ticket_data.model_dump())
