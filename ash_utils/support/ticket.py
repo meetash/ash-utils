@@ -73,4 +73,4 @@ def create_support_ticket(
         ... )
         >>> create_support_ticket("Some issue with the lab", ticket)
     """
-    logger.log(log_level, message, support_ticket_data=ticket_data.model_dump())
+    logger.log(log_level, message, support_ticket_data=ticket_data.model_dump(mode="json"))

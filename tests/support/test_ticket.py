@@ -64,7 +64,7 @@ class CreateSupportTicketTestCase(unittest.TestCase):
             message,
             support_ticket_data={
                 "kit_id": "AW12345678",
-                "ticket_type": TicketType.ESCALATE_LAB_EVENT_KIT_ISSUE,
+                "ticket_type": TicketType.ESCALATE_LAB_EVENT_KIT_ISSUE.value,
                 "partner_id": None,
                 "subject": "Sample Subject",
                 "message_body": "Result is blocked by lab",
@@ -90,7 +90,7 @@ class CreateSupportTicketTestCase(unittest.TestCase):
             message,
             support_ticket_data={
                 "kit_id": "AW12345678",
-                "ticket_type": TicketType.ESCALATE_LAB_EVENT_KIT_ISSUE,
+                "ticket_type": TicketType.ESCALATE_LAB_EVENT_KIT_ISSUE.value,
                 "partner_id": None,
                 "subject": "Sample Subject",
                 "message_body": "Result is blocked by lab",
@@ -115,7 +115,7 @@ class CreateSupportTicketTestCase(unittest.TestCase):
 
         expected_ticket_dict = {
             "kit_id": "AW12345678",
-            "ticket_type": TicketType.ESCALATE_LAB_EVENT_KIT_ISSUE,
+            "ticket_type": TicketType.ESCALATE_LAB_EVENT_KIT_ISSUE.value,
             "partner_id": "partner-123",
             "subject": "Sample Subject",
             "message_body": "Result is blocked by lab",
@@ -137,7 +137,7 @@ class CreateSupportTicketTestCase(unittest.TestCase):
         )
 
         create_support_ticket(ticket_data=ticket)
-        mock_logger.log.assert_called_with(LogLevel.ERROR, DEFAULT_LOG_MESSAGE, support_ticket_data=ticket.model_dump())
+        mock_logger.log.assert_called_with(LogLevel.ERROR, DEFAULT_LOG_MESSAGE, support_ticket_data=ticket.model_dump(mode="json"))
 
     def test__log_level_enum__all_levels__matches_expected_values(self):
         self.assertEqual(LogLevel.TRACE, "TRACE")
