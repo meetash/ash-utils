@@ -24,10 +24,18 @@ class PriorityLevel(StrEnum):
     P2 = "p2"
     P3 = "p3"
 
+class TicketType(StrEnum):
+    """
+    Constants that map to the ticket types in Zendesk
+    """
+
+    ESCALATE_ONCALL_EVENT_TO_OPS = "escalate-oncall-event-to-ops"
+    ESCALATE_LAB_EVENT_KIT_ISSUE = "escalate-lab-event-kit-issue"
+
 
 class SupportTicketDTO(BaseModel):
     kit_id: str
-    ticket_type: str
+    ticket_type: TicketType
     subject: str
     message_body: str
     custom_fields: dict = Field(default_factory=dict)
@@ -49,7 +57,7 @@ def create_support_ticket(message: str, ticket_data: SupportTicketDTO, log_level
     Example:
         >>> ticket = SupportTicketDTO(
         ...     kit_id="AW12345678",
-        ...     ticket_type="escalate-lab-event-kit-issue",
+        ...     ticket_type=TicketType.ESCALATE_LAB_EVENT_KIT_ISSUE,
         ...     partner_id="partner-123",
         ...     subject="Issue with kit processing",
         ...     message_body="Result is blocked by lab",
