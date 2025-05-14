@@ -1,14 +1,14 @@
 import unittest
 from unittest.mock import patch
 
-from ash_utils.support import LogLevel, create_support_ticket
-from ash_utils.support.ticket import SupportTicketDTO
+from ash_utils.support import LogLevel, create_support_ticket, TicketType
+from ash_utils.support.ticket import SupportTicketDTO, DEFAULT_LOG_MESSAGE
 
 
 class CreateSupportTicketTestCase(unittest.TestCase):
     def test__support_ticket_dto__all_fields_provided__creates_with_proper_attributes(self):
         kit_id = "AW12345678"
-        ticket_type = "kit-issue"
+        ticket_type = TicketType.ESCALATE_LAB_EVENT_KIT_ISSUE
         partner_id = "partner-123"
         subject = "Sample Subject"
         message_body = "Result is blocked by lab"
@@ -32,7 +32,7 @@ class CreateSupportTicketTestCase(unittest.TestCase):
 
     def test__support_ticket_dto__only_required_fields__optional_fields_are_none(self):
         kit_id = "AW12345678"
-        ticket_type = "kit-issue"
+        ticket_type = TicketType.ESCALATE_LAB_EVENT_KIT_ISSUE
 
         ticket = SupportTicketDTO(
             kit_id=kit_id,
@@ -52,19 +52,19 @@ class CreateSupportTicketTestCase(unittest.TestCase):
         message = "Problem with kit processing"
         ticket = SupportTicketDTO(
             kit_id="AW12345678",
-            ticket_type="kit-issue",
+            ticket_type=TicketType.ESCALATE_LAB_EVENT_KIT_ISSUE,
             subject="Sample Subject",
             message_body="Result is blocked by lab",
         )
 
-        create_support_ticket(message, ticket)
+        create_support_ticket(message, ticket_data=ticket)
 
         mock_logger.log.assert_called_with(
             LogLevel.ERROR,
             message,
             support_ticket_data={
                 "kit_id": "AW12345678",
-                "ticket_type": "kit-issue",
+                "ticket_type": TicketType.ESCALATE_LAB_EVENT_KIT_ISSUE,
                 "partner_id": None,
                 "subject": "Sample Subject",
                 "message_body": "Result is blocked by lab",
@@ -78,19 +78,19 @@ class CreateSupportTicketTestCase(unittest.TestCase):
         message = "Non-critical issue with kit"
         ticket = SupportTicketDTO(
             kit_id="AW12345678",
-            ticket_type="kit-issue",
+            ticket_type=TicketType.ESCALATE_LAB_EVENT_KIT_ISSUE,
             subject="Sample Subject",
             message_body="Result is blocked by lab",
         )
 
-        create_support_ticket(message, ticket, log_level=LogLevel.WARNING)
+        create_support_ticket(message, ticket_data=ticket, log_level=LogLevel.WARNING)
 
         mock_logger.log.assert_called_with(
             LogLevel.WARNING,
             message,
             support_ticket_data={
                 "kit_id": "AW12345678",
-                "ticket_type": "kit-issue",
+                "ticket_type": TicketType.ESCALATE_LAB_EVENT_KIT_ISSUE,
                 "partner_id": None,
                 "subject": "Sample Subject",
                 "message_body": "Result is blocked by lab",
@@ -104,18 +104,18 @@ class CreateSupportTicketTestCase(unittest.TestCase):
         message = "Problem with kit processing"
         ticket = SupportTicketDTO(
             kit_id="AW12345678",
-            ticket_type="kit-issue",
+            ticket_type=TicketType.ESCALATE_LAB_EVENT_KIT_ISSUE,
             partner_id="partner-123",
             subject="Sample Subject",
             message_body="Result is blocked by lab",
             custom_fields={"lab_id": "123", "sample_type": "blood"},
         )
 
-        create_support_ticket(message, ticket)
+        create_support_ticket(message, ticket_data=ticket)
 
         expected_ticket_dict = {
             "kit_id": "AW12345678",
-            "ticket_type": "kit-issue",
+            "ticket_type": TicketType.ESCALATE_LAB_EVENT_KIT_ISSUE,
             "partner_id": "partner-123",
             "subject": "Sample Subject",
             "message_body": "Result is blocked by lab",
@@ -124,6 +124,20 @@ class CreateSupportTicketTestCase(unittest.TestCase):
         }
 
         mock_logger.log.assert_called_with(LogLevel.ERROR, message, support_ticket_data=expected_ticket_dict)
+
+    @patch("ash_utils.support.ticket.logger")
+    def test__create_support_ticket__message_is_not_passed__default_one_is_used(self, mock_logger):
+        ticket = SupportTicketDTO(
+            kit_id="AW12345678",
+            ticket_type=TicketType.ESCALATE_LAB_EVENT_KIT_ISSUE,
+            partner_id="partner-123",
+            subject="Sample Subject",
+            message_body="Result is blocked by lab",
+            custom_fields={"lab_id": "123", "sample_type": "blood"},
+        )
+
+        create_support_ticket(ticket_data=ticket)
+        mock_logger.log.assert_called_with(LogLevel.ERROR, DEFAULT_LOG_MESSAGE, support_ticket_data=ticket.model_dump())
 
     def test__log_level_enum__all_levels__matches_expected_values(self):
         self.assertEqual(LogLevel.TRACE, "TRACE")

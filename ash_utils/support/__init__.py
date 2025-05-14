@@ -1,4 +1,4 @@
-from ash_utils.support.ticket import LogLevel, SupportTicketDTO, create_support_ticket, TicketType
+from ash_utils.support.ticket import LogLevel, SupportTicketDTO, TicketType, create_support_ticket
 
 __all__ = [
     "LogLevel",

@@ -3,6 +3,7 @@ from enum import StrEnum
 from loguru import logger
 from pydantic import BaseModel, Field
 
+DEFAULT_LOG_MESSAGE = "New support ticket"
 
 class LogLevel(StrEnum):
     TRACE = "TRACE"
@@ -24,6 +25,7 @@ class PriorityLevel(StrEnum):
     P2 = "p2"
     P3 = "p3"
 
+
 class TicketType(StrEnum):
     """
     Constants that map to the ticket types in Zendesk
@@ -43,7 +45,12 @@ class SupportTicketDTO(BaseModel):
     priority: PriorityLevel = PriorityLevel.P3
 
 
-def create_support_ticket(message: str, ticket_data: SupportTicketDTO, log_level: LogLevel = LogLevel.ERROR):
+def create_support_ticket(
+    message: str = DEFAULT_LOG_MESSAGE,
+    *,
+    ticket_data: SupportTicketDTO,
+    log_level: LogLevel = LogLevel.ERROR,
+):
     """
     This function logs a message along with a support ticket data using Loguru.
     The ticket data is attached as an extra field for better log searching and analysis.
