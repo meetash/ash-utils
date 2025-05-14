@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field
 
 DEFAULT_LOG_MESSAGE = "New support ticket"
 
+
 class LogLevel(StrEnum):
     TRACE = "TRACE"
     DEBUG = "DEBUG"
