@@ -1,4 +1,5 @@
 import datetime
+import typing as t
 from pathlib import Path
 
 from loguru import logger
@@ -11,7 +12,7 @@ class HealthCheckContextManager:
         self.heartbeat_file = heartbeat_file
         self.readiness_file = readiness_file
 
-    def __enter__(self) -> callable:
+    def __enter__(self) -> t.Callable:
         """Set up health check files. Return update_heartbeat_file function"""
         self.create_readiness_file()
         return self.update_heartbeat_file
@@ -24,7 +25,7 @@ class HealthCheckContextManager:
         """Updates the heartbeat file timestamp."""
         try:
             self.heartbeat_file.touch()
-            logger.debug(f"Heartbeat file updated at {datetime.datetime.now()}")
+            logger.debug(f"Heartbeat file updated at {datetime.datetime.now(tz=datetime.UTC)}")
         except Exception as e:
             logger.error(f"Could not update heartbeat file {self.heartbeat_file}: {e}")
 
@@ -32,7 +33,7 @@ class HealthCheckContextManager:
         """Creates the readiness file."""
         try:
             self.readiness_file.touch()
-            logger.debug(f"Readiness file created at {datetime.datetime.now()}")
+            logger.debug(f"Readiness file created at {datetime.datetime.now(tz=datetime.UTC)}")
         except Exception as e:
             logger.error(f"Could not create readiness file {self.readiness_file}: {e}")
 
