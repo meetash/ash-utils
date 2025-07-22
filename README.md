@@ -10,6 +10,7 @@ Python library containing common utilities used across various ASH projects.
 4. **configure_security_headers** - Function provides a pre-configured security header setup for FastAPI applications following security best practices.
 5. **Initialize Sentry** - Function to initialize Sentry for error tracking and proper PII sanitization in a project.
 6. **Support Ticket** - Standardized support ticket creation and logging functionality.
+7. **HealthCheckContextManager** - Context manager for health check file management with automatic cleanup.
 
 ## Installation
 
@@ -151,6 +152,37 @@ The configure_security_headers function adds these security middlewares with saf
 - HTTP Strict Transport Security (HSTS)
 - Permissions-Policy
 
+5. HealthCheckContextManager
+
+*Purpose:* Manage health check files (readiness and heartbeat) with automatic cleanup and error handling.
+
+```python
+import tempfile
+from pathlib import Path
+from ash_utils.healthcheck.utils import HealthCheckContextManager
+
+# Basic usage with default temp directory
+with HealthCheckContextManager(
+    heartbeat_file=Path(tempfile.gettempdir(), "heartbeat"),
+    readiness_file=Path(tempfile.gettempdir(), "ready")
+) as update_heartbeat:
+    # Readiness file is automatically created
+    # Your application code here
+    update_heartbeat()  # Update heartbeat timestamp
+    # More application code...
+
+# Files are automatically cleaned up when context exits
+```
+
+The HealthCheckContextManager provides:
+- **Automatic file management**: Creates readiness file on enter, cleans up both files on exit
+- **Heartbeat updates**: Returns a function to update the heartbeat file timestamp
+- **Error handling**: Gracefully handles file operation errors with logging
+- **Resource cleanup**: Ensures files are removed even if exceptions occur
+- **Flexible paths**: Works with any file paths you specify
+
+**Use cases:**
+- Kubernetes readiness/liveness probes
 
 ### Configuration
 Middleware Configuration Options:
@@ -176,7 +208,7 @@ The BaseApi class provides two custom exceptions:
 - Configure a meaningful error message for production environments
 - Use the BaseApi for all external API calls to ensure consistent error handling
 
-5. Sentry Initialization
+6. Sentry Initialization
 
 *Purpose*: A standard initialization of Sentry for error tracking and proper PII sanitization across projects.
 
@@ -240,7 +272,7 @@ sentry_sdk.init(
 )
 ```
 
-6. Support Ticket
+7. Support Ticket
 
 *Purpose:* Standardized method for creating and logging support tickets across services.
 
