@@ -25,6 +25,12 @@ commands:
       echo ${CYAN}"> PyRight"${CLEAR}
       uv run pyright
 
+  fv:
+    description: Run formatters and validators
+    depends:
+      - fmt
+      - val
+
   test:
     description: Run project tests
     cmd: |

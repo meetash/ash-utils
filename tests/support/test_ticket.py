@@ -137,7 +137,9 @@ class CreateSupportTicketTestCase(unittest.TestCase):
         )
 
         create_support_ticket(ticket_data=ticket)
-        mock_logger.log.assert_called_with(LogLevel.ERROR, DEFAULT_LOG_MESSAGE, support_ticket_data=ticket.model_dump(mode="json"))
+        mock_logger.log.assert_called_with(
+            LogLevel.ERROR, DEFAULT_LOG_MESSAGE, support_ticket_data=ticket.model_dump(mode="json")
+        )
 
     def test__log_level_enum__all_levels__matches_expected_values(self):
         self.assertEqual(LogLevel.TRACE, "TRACE")
