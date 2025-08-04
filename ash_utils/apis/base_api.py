@@ -32,7 +32,7 @@ class BaseApi:
         params: dict[str, t.Any] | None = None,
         headers: dict | None = None,
     ) -> Response:
-        with logger.contextualize(url=url, method=method, params=params):
+        with logger.contextualize(url=url, method=method):
             if headers is None:
                 headers = {self.request_id_header_name: request_id_var.get()}
             else:
