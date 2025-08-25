@@ -29,8 +29,8 @@ class BaseApi:
         url: str,
         body: t.Mapping[str, t.Any] | t.Collection | None = None,
         data: t.Mapping[str, t.Any] | None = None,
-        params: dict[str, t.Any] | None = None,
-        headers: dict | None = None,
+        params: t.Mapping[str, t.Any] | None = None,
+        headers: t.Mapping[str, t.Any] | None = None,
     ) -> Response:
         with logger.contextualize(url=url, method=method):
             if headers is None:
