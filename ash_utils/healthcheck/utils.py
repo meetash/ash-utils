@@ -1,6 +1,7 @@
 import datetime
 import typing as t
 from pathlib import Path
+from types import TracebackType
 
 from loguru import logger
 
@@ -17,7 +18,9 @@ class HealthCheckContextManager:
         self.create_readiness_file()
         return self.update_heartbeat_file
 
-    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
+    def __exit__(
+        self, exc_type: type[BaseException] | None, exc_val: BaseException | None, exc_tb: TracebackType | None
+    ) -> None:
         """Clean up health check files and restore original signal handlers."""
         self.cleanup_health_files()
 

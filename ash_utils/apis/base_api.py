@@ -27,8 +27,8 @@ class BaseApi:
         self,
         method: HTTPMethod,
         url: str,
-        body: dict[str, t.Any] | list[int] | None = None,
-        data: dict[str, t.Any] | list[int] | None = None,
+        body: dict[str, t.Any] | t.Collection | None = None,
+        data: t.Mapping[str, t.Any] | None = None,
         params: dict[str, t.Any] | None = None,
         headers: dict | None = None,
     ) -> Response:

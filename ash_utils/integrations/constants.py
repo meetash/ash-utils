@@ -1,3 +1,5 @@
+import typing as t
+
 from pydantic.alias_generators import to_snake
 
 # Sentry Constants
@@ -59,7 +61,7 @@ class LoguruConfigs:
     ASH_SYSTEM_ERROR_CODE = "ash-system-error"
 
     @staticmethod
-    def breadcrumb_log_format(_) -> str:
+    def breadcrumb_log_format(_: object) -> str:
         """Returns the log string loguru needs to format the LogRecord
         object to generate a log message.
 
@@ -68,7 +70,7 @@ class LoguruConfigs:
         return "{message} | {extra}"
 
     @staticmethod
-    def event_log_format(record, context_keys: list[str]) -> str:
+    def event_log_format(record: dict[str, t.Any], context_keys: list[str]) -> str:
         """Returns a formatted string for loguru events.
         :param record: The record object.
         """

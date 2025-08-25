@@ -144,7 +144,7 @@ def initialize_sentry(
 
     default_integrations = [
         LoguruIntegration(
-            event_format=partial(LoguruConfigs.event_log_format, context_keys=context_keys),
+            event_format=partial(LoguruConfigs.event_log_format, context_keys=context_keys),  # pyright: ignore PGH003
             breadcrumb_format=LoguruConfigs.breadcrumb_log_format,
         ),
     ]
