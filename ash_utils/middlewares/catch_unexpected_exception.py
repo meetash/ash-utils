@@ -15,7 +15,7 @@ class CatchUnexpectedExceptionsMiddleware:
         response_error_message: str,
         response_status_code: int = status.HTTP_500_INTERNAL_SERVER_ERROR,
         context_keys: list[str] | None = None,
-    ):
+    ) -> None:
         self.app = app
         self.response_error_message = response_error_message
         self.response_status_code = response_status_code
@@ -29,9 +29,9 @@ class CatchUnexpectedExceptionsMiddleware:
         receive_proxy = ReceiveProxy(receive=receive)
 
         try:
-            await self.app(scope, cast(Receive, receive_proxy), send)
+            await self.app(scope, cast("Receive", receive_proxy), send)
         except Exception:
-            request = Request(scope, cast(Receive, receive_proxy))
+            request = Request(scope, cast("Receive", receive_proxy))
             context = await self._extract_request_info(request, receive_proxy)
             with logger.contextualize(**context):
                 logger.exception(f"Unexpected exception. Url: {request.url}")
@@ -43,20 +43,20 @@ class CatchUnexpectedExceptionsMiddleware:
             return
 
     async def _extract_request_info(self, request: Request, receive_proxy: "ReceiveProxy") -> dict[str, str]:
-        """
-        Extracts specified keys from the request data or query parameters.
+        """Extracts specified keys from the request data or query parameters.
 
         Args:
             request: The incoming request object.
 
         Returns:
             A dictionary containing the extracted key-value pairs.
+
         """
         try:
             body = await self._get_request_body(request, receive_proxy)
             data = json.loads(body)
         except Exception:
-            data = cast(dict, request.query_params)
+            data = cast("dict", request.query_params)
 
         context = {}
         for key in self.context_keys:
@@ -66,15 +66,14 @@ class CatchUnexpectedExceptionsMiddleware:
         return context
 
     async def _get_request_body(self, request: Request, receive_proxy: "ReceiveProxy") -> bytes:
-        """
-        Returns the request body, either from the cache or by reading from the stream.
+        """Returns the request body, either from the cache or by reading from the stream.
         This is necessary because the request body can only be read once.
 
         Args:
             request: The incoming request object.
             receive_proxy: The proxy object to handle the request body.
-        """
 
+        """
         if not receive_proxy.has_body():
             logger.debug("Request body not cached, consuming it now.")
             return await request.body()
@@ -84,8 +83,7 @@ class CatchUnexpectedExceptionsMiddleware:
 
 
 def _find_key_in_dict(data: dict, key: str) -> str | None:
-    """
-    Finds the value of a specified key in a nested dictionary.
+    """Finds the value of a specified key in a nested dictionary.
 
     Args:
         data: The dictionary to search.
@@ -93,6 +91,7 @@ def _find_key_in_dict(data: dict, key: str) -> str | None:
 
     Returns:
         The value associated with the key, or None if not found.
+
     """
     if key in data:
         return data[key]
@@ -112,6 +111,7 @@ def _to_snake(camel: str) -> str:
 
     Returns:
         The converted string in snake_case.
+
     """
     # Handle the sequence of uppercase letters followed by a lowercase letter
     snake = re.sub(r"([A-Z]+)([A-Z][a-z])", lambda m: f"{m.group(1)}_{m.group(2)}", camel)
@@ -129,7 +129,7 @@ def _to_snake(camel: str) -> str:
 class ReceiveProxy:
     """Class that caches the request body so that it can be used later."""
 
-    def __init__(self, receive: Receive):
+    def __init__(self, receive: Receive) -> None:
         self._receive = receive
         self.cached_body = b""
         self._consumed = False

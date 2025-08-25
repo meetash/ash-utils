@@ -17,9 +17,7 @@ class LogLevel(StrEnum):
 
 
 class PriorityLevel(StrEnum):
-    """
-    Constants that map to the priority levels in Zendesk
-    """
+    """Constants that map to the priority levels in Zendesk."""
 
     P0 = "p0"
     P1 = "p1"
@@ -28,9 +26,7 @@ class PriorityLevel(StrEnum):
 
 
 class TicketType(StrEnum):
-    """
-    Constants that map to the ticket types in Zendesk
-    """
+    """Constants that map to the ticket types in Zendesk."""
 
     ESCALATE_ONCALL_EVENT_TO_OPS = "escalate-oncall-event-to-ops"
     ESCALATE_LAB_EVENT_KIT_ISSUE = "escalate-lab-event-kit-issue"
@@ -51,9 +47,8 @@ def create_support_ticket(
     *,
     ticket_data: SupportTicketDTO,
     log_level: LogLevel = LogLevel.ERROR,
-):
-    """
-    This function logs a message along with a support ticket data using Loguru.
+) -> None:
+    """This function logs a message along with a support ticket data using Loguru.
     The ticket data is attached as an extra field for better log searching and analysis.
 
     Args:
@@ -69,8 +64,9 @@ def create_support_ticket(
         ...     partner_id="partner-123",
         ...     subject="Issue with kit processing",
         ...     message_body="Result is blocked by lab",
-        ...     custom_fields={"lab_id": "123", "sample_type": "blood"}
+        ...     custom_fields={"lab_id": "123", "sample_type": "blood"},
         ... )
         >>> create_support_ticket("Some issue with the lab", ticket)
+
     """
     logger.log(log_level, message, support_ticket_data=ticket_data.model_dump(mode="json"))

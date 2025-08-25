@@ -3,7 +3,7 @@ from starlette.types import ASGIApp, Receive, Scope, Send
 
 
 class PermissionsPolicy:
-    def __init__(self, app: ASGIApp, Option: dict[str, list[str]]):  # noqa: N803
+    def __init__(self, app: ASGIApp, Option: dict[str, list[str]]) -> None:  # noqa: N803
         self.app = app
         self.allowed_policies = [
             "accelerometer",
@@ -60,7 +60,8 @@ class PermissionsPolicy:
 
         for feature, origins in policy_dict.items():
             if feature not in self.allowed_policies:
-                raise ValueError(f"Invalid policy feature: {feature}")
+                msg = f"Invalid policy feature: {feature}"
+                raise ValueError(msg)
 
             if not origins:
                 policy_parts.append(f"{feature}=()")
@@ -73,7 +74,8 @@ class PermissionsPolicy:
                     processed.append(f"'{origin_lower}'")
                 else:
                     if not origin.startswith(("https://", "http://", "http:")):
-                        raise ValueError(f"Invalid origin format: {origin_lower}")
+                        msg = f"Invalid origin format: {origin_lower}"
+                        raise ValueError(msg)
                     processed.append(origin_lower)
 
             policy_parts.append(f"{feature}=({' '.join(processed)})")
