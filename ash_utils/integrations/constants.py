@@ -46,6 +46,10 @@ KEYS_TO_FILTER = [
     "shippingZip",
     "state",
     "zip",
+    "pdf",
+    "to",
+    "from",
+    "sender",
 ]
 
 
