@@ -54,16 +54,13 @@ KEYS_TO_FILTER = [
 
 
 class LoguruConfigs:
-    """
-    Holds Loguru format methods and error code constant
-    """
+    """Holds Loguru format methods and error code constant."""
 
     ASH_SYSTEM_ERROR_CODE = "ash-system-error"
 
     @staticmethod
-    def breadcrumb_log_format(_):
-        """
-        Returns the log string loguru needs to format the LogRecord
+    def breadcrumb_log_format(_) -> str:
+        """Returns the log string loguru needs to format the LogRecord
         object to generate a log message.
 
         :param _: The record object (UNUSED).
@@ -71,12 +68,10 @@ class LoguruConfigs:
         return "{message} | {extra}"
 
     @staticmethod
-    def event_log_format(record, context_keys: list[str]):
-        """
-        Returns a formatted string for loguru events.
+    def event_log_format(record, context_keys: list[str]) -> str:
+        """Returns a formatted string for loguru events.
         :param record: The record object.
         """
-
         if "code" not in context_keys:
             context_keys.insert(0, "code")
 
