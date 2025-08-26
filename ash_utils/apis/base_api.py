@@ -10,7 +10,7 @@ from ash_utils.middlewares import request_id_var
 
 class BaseApi:
     class ThirdPartyRequestError(Exception):
-        def __init__(self, message: str):
+        def __init__(self, message: str) -> None:
             self.message = message
 
     class ThirdPartyHttpStatusError(Exception):
@@ -19,7 +19,7 @@ class BaseApi:
             self.text = text
             self.response = response
 
-    def __init__(self, client: AsyncClient, request_id_header_name: str = constants.REQUEST_ID_HEADER_NAME):
+    def __init__(self, client: AsyncClient, request_id_header_name: str = constants.REQUEST_ID_HEADER_NAME) -> None:
         self.client = client
         self.request_id_header_name = request_id_header_name
 
@@ -27,10 +27,10 @@ class BaseApi:
         self,
         method: HTTPMethod,
         url: str,
-        body: dict[str, t.Any] | list[int] | None = None,
-        data: t.Any | None = None,
-        params: dict[str, t.Any] | None = None,
-        headers: dict | None = None,
+        body: t.Mapping[str, t.Any] | t.Collection | None = None,
+        data: t.Mapping[str, t.Any] | None = None,
+        params: t.Mapping[str, t.Any] | None = None,
+        headers: t.MutableMapping[str, t.Any] | None = None,
     ) -> Response:
         with logger.contextualize(url=url, method=method):
             if headers is None:

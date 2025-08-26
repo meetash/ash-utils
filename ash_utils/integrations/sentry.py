@@ -13,7 +13,6 @@ from ash_utils.integrations.constants import KEYS_TO_FILTER, REDACTION_STRING, S
 
 def _redact_logentry(event: Event) -> Event:
     """Redacts sensitive errors from the log entry before sending to Sentry."""
-
     if "logentry" in event:
         logentry_string = json.dumps(event["logentry"])
         extra = event.get("extra", {}).get("extra", {})
@@ -30,7 +29,6 @@ def _redact_logentry(event: Event) -> Event:
 
 def _try_parse_json(data_string: str) -> dict | None:
     """Attempts to parse a string as JSON. Returns a dictionary if successful, otherwise None."""
-
     try:
         return json.loads(data_string.replace("'", '"'))
     except json.JSONDecodeError:
@@ -39,7 +37,6 @@ def _try_parse_json(data_string: str) -> dict | None:
 
 def _redact_exception(event: Event) -> Event:
     """Redacts sensitive-tagged values or values of `keys_to_filter` in exception details."""
-
     for values in event.get("exception", {}).get("values", []):
         exception_value = values.get("value")
         if not exception_value:
@@ -70,7 +67,7 @@ def _redact_exception(event: Event) -> Event:
 
 def _remove_potential_exception_pii(event: Event) -> Event:
     """Removes potential PII from the exception context in the Sentry event.
-    Only runs if the `_redact_exception` function fails
+    Only runs if the `_redact_exception` function fails.
     """
     if "exception" in event and isinstance(event["exception"], dict):
         error_type = event["exception"]["values"][0]["type"]
@@ -90,6 +87,7 @@ def before_send(event: Event, _hint: dict) -> Event:
 
     Returns:
         Event: The redacted Sentry event
+
     """
     event_log_redacted = _redact_logentry(event)
     return _redact_exception(event_log_redacted)
@@ -103,7 +101,7 @@ def initialize_sentry(
     sample_rate: float = 1.0,
     additional_integrations: list | None = None,
     context_keys: list[str] | None = None,
-):
+) -> None:
     """Initializes the Sentry SDK with the provided configuration.
 
     #### Params:
@@ -137,19 +135,16 @@ def initialize_sentry(
         environment="staging",
         release="1.2.3",
         traces_sample_rate=0.5,
-        additional_integrations=[
-            FastAPIIntegration(), SqlalchemyIntegration()
-        ],
+        additional_integrations=[FastAPIIntegration(), SqlalchemyIntegration()],
     )
     ```
     """
-
     if not context_keys:
         context_keys = ["code", "kit_id", "event"]
 
     default_integrations = [
         LoguruIntegration(
-            event_format=partial(LoguruConfigs.event_log_format, context_keys=context_keys),
+            event_format=partial(LoguruConfigs.event_log_format, context_keys=context_keys),  # pyright: ignore PGH003
             breadcrumb_format=LoguruConfigs.breadcrumb_log_format,
         ),
     ]
