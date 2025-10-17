@@ -8,6 +8,7 @@ from ash_utils.support.ticket import SupportTicketDTO, DEFAULT_LOG_MESSAGE
 class CreateSupportTicketTestCase(unittest.TestCase):
     def test__support_ticket_dto__all_fields_provided__creates_with_proper_attributes(self):
         kit_id = "AW12345678"
+        order_id = "ORD-1234"
         ticket_type = TicketType.ESCALATE_LAB_EVENT_KIT_ISSUE
         partner_id = "partner-123"
         subject = "Sample Subject"
@@ -16,6 +17,7 @@ class CreateSupportTicketTestCase(unittest.TestCase):
 
         ticket = SupportTicketDTO(
             kit_id=kit_id,
+            order_id=order_id,
             ticket_type=ticket_type,
             partner_id=partner_id,
             subject=subject,
@@ -24,6 +26,7 @@ class CreateSupportTicketTestCase(unittest.TestCase):
         )
 
         self.assertEqual(ticket.kit_id, kit_id)
+        self.assertEqual(ticket.order_id, order_id)
         self.assertEqual(ticket.ticket_type, ticket_type)
         self.assertEqual(ticket.partner_id, partner_id)
         self.assertEqual(ticket.subject, subject)
@@ -43,6 +46,7 @@ class CreateSupportTicketTestCase(unittest.TestCase):
 
         self.assertEqual(ticket.kit_id, kit_id)
         self.assertEqual(ticket.ticket_type, ticket_type)
+        self.assertIsNone(ticket.order_id)
         self.assertIsNone(ticket.partner_id)
         self.assertEqual(ticket.custom_fields, {})
         self.assertEqual(ticket.priority, "p3")
@@ -64,6 +68,7 @@ class CreateSupportTicketTestCase(unittest.TestCase):
             message,
             support_ticket_data={
                 "kit_id": "AW12345678",
+                "order_id": None,
                 "ticket_type": TicketType.ESCALATE_LAB_EVENT_KIT_ISSUE.value,
                 "partner_id": None,
                 "subject": "Sample Subject",
@@ -90,6 +95,7 @@ class CreateSupportTicketTestCase(unittest.TestCase):
             message,
             support_ticket_data={
                 "kit_id": "AW12345678",
+                "order_id": None,
                 "ticket_type": TicketType.ESCALATE_LAB_EVENT_KIT_ISSUE.value,
                 "partner_id": None,
                 "subject": "Sample Subject",
@@ -105,6 +111,7 @@ class CreateSupportTicketTestCase(unittest.TestCase):
         ticket = SupportTicketDTO(
             kit_id="AW12345678",
             ticket_type=TicketType.ESCALATE_LAB_EVENT_KIT_ISSUE,
+            order_id="ORD-9999",
             partner_id="partner-123",
             subject="Sample Subject",
             message_body="Result is blocked by lab",
@@ -115,6 +122,7 @@ class CreateSupportTicketTestCase(unittest.TestCase):
 
         expected_ticket_dict = {
             "kit_id": "AW12345678",
+            "order_id": "ORD-9999",
             "ticket_type": TicketType.ESCALATE_LAB_EVENT_KIT_ISSUE.value,
             "partner_id": "partner-123",
             "subject": "Sample Subject",
