@@ -34,6 +34,7 @@ class TicketType(StrEnum):
 
 class SupportTicketDTO(BaseModel):
     kit_id: str
+    order_id: str | None = None
     ticket_type: TicketType
     subject: str
     message_body: str
