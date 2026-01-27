@@ -1,0 +1,16 @@
+name: Main Branch Pipeline
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  tests:
+    name: Tests
+    uses: './.github/workflows/tests.yml'
+  sonar-scan:
+    needs: tests
+    uses: meetash/github-workflows/.github/workflows/sonarcloud.yaml@v3
+    secrets:
+      sonar_token: ${{ secrets.SONAR_TOKEN }}

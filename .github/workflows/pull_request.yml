@@ -9,3 +9,8 @@ jobs:
   tests:
     name: Tests
     uses: './.github/workflows/tests.yml'
+  sonar-scan:
+    needs: tests
+    uses: meetash/github-workflows/.github/workflows/sonarcloud.yaml@v3
+    secrets:
+      sonar_token: ${{ github.actor == 'dependabot[bot]' && secrets.SONAR_DEPENDABOT_TOKEN || secrets.SONAR_TOKEN }}
