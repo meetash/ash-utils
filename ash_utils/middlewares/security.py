@@ -9,7 +9,7 @@ from ash_utils.constants import HEADERS_POLICIES_NONE, HEADERS_POLICIES_SELF
 from ash_utils.middlewares import PermissionsPolicy
 
 
-def configure_security_headers(app: FastAPI):
+def configure_security_headers(app: FastAPI) -> None:
     app.add_middleware(
         ContentSecurityPolicy,
         Option={

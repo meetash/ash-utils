@@ -19,34 +19,30 @@ class SentryUtilitiesTestcase(IsolatedAsyncioTestCase):
         self.assertIsNone(_try_parse_json(""))
         self.assertIsNone(_try_parse_json("invalid"))
 
-    @parameterized.expand(
-        [
-            ("{'key': 'value'}", {"key": "value"}),
-            ('{"key": "value"}', {"key": "value"}),
-            (
-                '{"key": "value", "nested": {"key2": "value2"}}',
-                {"key": "value", "nested": {"key2": "value2"}},
-            ),
-            ('{"key": ["value1", "value2"]}', {"key": ["value1", "value2"]}),
-        ]
-    )
+    @parameterized.expand([
+        ("{'key': 'value'}", {"key": "value"}),
+        ('{"key": "value"}', {"key": "value"}),
+        (
+            '{"key": "value", "nested": {"key2": "value2"}}',
+            {"key": "value", "nested": {"key2": "value2"}},
+        ),
+        ('{"key": ["value1", "value2"]}', {"key": ["value1", "value2"]}),
+    ])
     def test_try_parse_json_returns_dict_with_valid_json(self, json_to_parse, expected_result):
         self.assertEqual(_try_parse_json(json_to_parse), expected_result)
 
-    @parameterized.expand(
-        [
-            ("test message", "test message"),
-            (
-                "test message with SENSITIVE data",
-                "REDACTED SENSITIVE ERROR | test-kit-id",
-            ),
-            ("test message with sensitive data", "test message with sensitive data"),
-            (
-                "test message with patient_address1",
-                "REDACTED SENSITIVE ERROR | key: address | test-kit-id",
-            ),
-        ]
-    )
+    @parameterized.expand([
+        ("test message", "test message"),
+        (
+            "test message with SENSITIVE data",
+            "REDACTED SENSITIVE ERROR | test-kit-id",
+        ),
+        ("test message with sensitive data", "test message with sensitive data"),
+        (
+            "test message with patient_address1",
+            "REDACTED SENSITIVE ERROR | key: address | test-kit-id",
+        ),
+    ])
     def test_redact_logentry(self, message, redacted_message):
         event = {
             "logentry": {"message": message},
@@ -56,41 +52,39 @@ class SentryUtilitiesTestcase(IsolatedAsyncioTestCase):
         self.assertEqual(redacted_event["logentry"]["message"], redacted_message)
         self.assertEqual(redacted_event["extra"]["extra"]["kit_id"], "test-kit-id")
 
-    @parameterized.expand(
-        [
-            (
-                "no_logentry_provided",
-                {
-                    "exception": {"values": [{"value": "exception string"}]},
-                    "extra": {"extra": {"kit_id": "test-kit-id"}},
-                },
-            ),
-            (
-                "logentry_is_empty_dict",
-                {
-                    "exception": {"values": [{"value": "exception string"}]},
-                    "extra": {"extra": {"kit_id": "test-kit-id"}},
-                    "logentry": {},
-                },
-            ),
-            (
-                "logentry_is_None",
-                {
-                    "exception": {"values": [{"value": "exception string"}]},
-                    "extra": {"extra": {"kit_id": "test-kit-id"}},
-                    "logentry": None,
-                },
-            ),
-            (
-                "logentry_is_empty_string",
-                {
-                    "exception": {"values": [{"value": "exception string"}]},
-                    "extra": {"extra": {"kit_id": "test-kit-id"}},
-                    "logentry": "",
-                },
-            ),
-        ]
-    )
+    @parameterized.expand([
+        (
+            "no_logentry_provided",
+            {
+                "exception": {"values": [{"value": "exception string"}]},
+                "extra": {"extra": {"kit_id": "test-kit-id"}},
+            },
+        ),
+        (
+            "logentry_is_empty_dict",
+            {
+                "exception": {"values": [{"value": "exception string"}]},
+                "extra": {"extra": {"kit_id": "test-kit-id"}},
+                "logentry": {},
+            },
+        ),
+        (
+            "logentry_is_None",
+            {
+                "exception": {"values": [{"value": "exception string"}]},
+                "extra": {"extra": {"kit_id": "test-kit-id"}},
+                "logentry": None,
+            },
+        ),
+        (
+            "logentry_is_empty_string",
+            {
+                "exception": {"values": [{"value": "exception string"}]},
+                "extra": {"extra": {"kit_id": "test-kit-id"}},
+                "logentry": "",
+            },
+        ),
+    ])
     def test_redact_logentry_no_logentry(self, _name, event):
         expected_event = {
             "exception": {"values": [{"value": "exception string"}]},
@@ -101,54 +95,52 @@ class SentryUtilitiesTestcase(IsolatedAsyncioTestCase):
             self.assertIn(key, redacted_event)
             self.assertEqual(redacted_event[key], val)
 
-    @parameterized.expand(
-        [
-            (
-                {"values": [{"value": "exception string"}]},
-                {"values": [{"value": "exception string"}]},
-            ),
-            (
-                {
-                    "values": [
-                        {"value": "exception string"},
-                        {"value": "SENSITIVE string"},
-                    ]
-                },
-                {"values": [{"value": "exception string"}, {"value": "REDACTED"}]},
-            ),
-            (
-                {
-                    "values": [
-                        {"value": "exception string"},
-                        {"value": json.dumps({"test": "some string", "phone": "123-456-7890"})},
-                    ]
-                },
-                {
-                    "values": [
-                        {"value": "exception string"},
-                        {"value": json.dumps({"test": "some string", "phone": "REDACTED"})},
-                    ]
-                },
-            ),
-            (
-                {"values": [{"value": "shipping_email invalid: abc@defg.edu"}]},
-                {"values": [{"value": "REDACTED"}]},
-            ),
-            (
-                {"values": [{"value": ""}]},
-                {"values": [{"value": ""}]},
-            ),
-            (
-                {
-                    "values": [
-                        {"value": ""},
-                        {"value": "shipping_email invalid: abc@defg.edu"},
-                    ]
-                },
-                {"values": [{"value": ""}, {"value": "REDACTED"}]},
-            ),
-        ]
-    )
+    @parameterized.expand([
+        (
+            {"values": [{"value": "exception string"}]},
+            {"values": [{"value": "exception string"}]},
+        ),
+        (
+            {
+                "values": [
+                    {"value": "exception string"},
+                    {"value": "SENSITIVE string"},
+                ]
+            },
+            {"values": [{"value": "exception string"}, {"value": "REDACTED"}]},
+        ),
+        (
+            {
+                "values": [
+                    {"value": "exception string"},
+                    {"value": json.dumps({"test": "some string", "phone": "123-456-7890"})},
+                ]
+            },
+            {
+                "values": [
+                    {"value": "exception string"},
+                    {"value": json.dumps({"test": "some string", "phone": "REDACTED"})},
+                ]
+            },
+        ),
+        (
+            {"values": [{"value": "shipping_email invalid: abc@defg.edu"}]},
+            {"values": [{"value": "REDACTED"}]},
+        ),
+        (
+            {"values": [{"value": ""}]},
+            {"values": [{"value": ""}]},
+        ),
+        (
+            {
+                "values": [
+                    {"value": ""},
+                    {"value": "shipping_email invalid: abc@defg.edu"},
+                ]
+            },
+            {"values": [{"value": ""}, {"value": "REDACTED"}]},
+        ),
+    ])
     def test_redact_exception(self, exception, redacted_exception):
         event = {
             "exception": exception,

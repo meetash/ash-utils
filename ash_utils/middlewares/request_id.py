@@ -12,17 +12,16 @@ request_id_var: ContextVar[str] = ContextVar("request_id_var", default="")
 
 
 class RequestIDMiddleware:
-    """
-    Middleware responsible for contextualizing logger with request_id that
+    """Middleware responsible for contextualizing logger with request_id that
     helps to find all logs for a specific request.
     `request_id` is returned in the "X-Request-ID" header of the response.
     """
 
-    def __init__(self, app: ASGIApp, header_name: str = REQUEST_ID_HEADER_NAME):
+    def __init__(self, app: ASGIApp, header_name: str = REQUEST_ID_HEADER_NAME) -> None:
         self.app = app
         self.header_name = header_name
 
-    async def __call__(self, scope, receive, send):
+    async def __call__(self, scope, receive, send) -> None:
         if scope["type"] != "http":  # pragma: no cover
             await self.app(scope, receive, send)
             return
@@ -35,7 +34,7 @@ class RequestIDMiddleware:
             logger.info(f"Request started | Path: {request.url.path}")
             start_time = time.monotonic()
 
-            async def send_wrapper(message):
+            async def send_wrapper(message) -> None:
                 if message["type"] == "http.response.start":
                     headers = message.setdefault("headers", [])
                     headers.append((self.header_name.encode(), request_id.encode()))
