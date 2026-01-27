@@ -1,0 +1,12 @@
+name: Merge to main Pipeline
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  sonar-scan:
+    uses: ./.github/workflows/sonarcloud.yaml
+    secrets:
+      sonar_token: ${{ secrets.SONAR_TOKEN }}
