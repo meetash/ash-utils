@@ -11,6 +11,6 @@ jobs:
     uses: './.github/workflows/tests.yml'
   sonar-scan:
     needs: tests
-    uses: meetash/github-workflows/.github/workflows/sonarcloud.yaml@v3
+    uses: './.github/workflows/sonar.yml'
     secrets:
       sonar_token: ${{ secrets.SONAR_TOKEN }}
