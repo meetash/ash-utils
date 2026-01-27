@@ -10,7 +10,7 @@ jobs:
     name: Tests
     uses: './.github/workflows/tests.yml'
   sonar-scan:
-    needs: tests
+    needs: [tests, validation]
     uses: './.github/workflows/sonar.yml'
     secrets:
       sonar_token: ${{ secrets.SONAR_TOKEN }}
