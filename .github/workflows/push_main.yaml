@@ -1,4 +1,4 @@
-name: Merge to main Pipeline
+name: Main Branch Pipeline
 
 on:
   push:
@@ -6,7 +6,14 @@ on:
       - main
 
 jobs:
+  validation:
+    name: Code Validation
+    uses: './.github/workflows/validate_code.yml'
+  tests:
+    name: Tests
+    uses: './.github/workflows/tests.yml'
   sonar-scan:
-    uses: ./.github/workflows/sonarcloud.yaml
+    needs: [tests, validation]
+    uses: './.github/workflows/sonar.yml'
     secrets:
       sonar_token: ${{ secrets.SONAR_TOKEN }}
