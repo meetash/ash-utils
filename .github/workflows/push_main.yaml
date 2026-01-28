@@ -1,6 +1,9 @@
-name: Pull Request Pipeline
+name: Main Branch Pipeline
+
 on:
-  pull_request:
+  push:
+    branches:
+      - main
 
 jobs:
   validation:

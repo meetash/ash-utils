@@ -1,0 +1,32 @@
+name: CodeScan
+
+on:
+  workflow_call:
+    inputs:
+      skip_coverage:
+        description: 'Skip coverage download (make it optional)'
+        required: false
+        type: boolean
+        default: false
+    secrets:
+      sonar_token:
+        required: true
+
+jobs:
+  sonarcloud:
+    name: SonarCloud
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0 # Shallow clones should be disabled for a better relevancy of analysis
+      - name: Download coverage
+        if: ${{ inputs.skip_coverage != true }}
+        uses: actions/download-artifact@v6
+        with:
+          name: coverage
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarqube-scan-action@v6
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Needed to get PR information, if any
+          SONAR_TOKEN: ${{ secrets.sonar_token }}
