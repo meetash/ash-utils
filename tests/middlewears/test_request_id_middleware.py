@@ -1,6 +1,7 @@
 import uuid
 from unittest.mock import patch
 
+import pytest
 from ash_utils.middlewares import RequestIDMiddleware
 from fastapi.testclient import TestClient
 
@@ -53,6 +54,19 @@ def test__request_id_middleware__custom_session_id_header__added_to_context(app)
         mock_contextualize.assert_called_once_with(request_id=f"{request_id}", session_id=session_id)
 
     assert resp.headers.get("x-request-id") == f"{request_id}"
+
+
+def test__request_id_middleware__deprecated_header_name_kwarg__still_works(app):
+    request_id = uuid.uuid4()
+    app.add_middleware(RequestIDMiddleware, header_name="X-Custom-Request-ID")
+
+    with pytest.deprecated_call(
+        match="'header_name' is deprecated and will be removed in a future release. "
+        "Use 'request_id_header_name' instead.",
+    ):
+        resp = TestClient(app).get("/", headers={"x-custom-request-id": f"{request_id}"})
+
+    assert resp.headers.get("x-custom-request-id") == f"{request_id}"
 
 
 def is_valid_uuid(uuid_to_test, version=4):

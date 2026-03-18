@@ -1,5 +1,6 @@
 import time
 import uuid
+import warnings
 from contextvars import ContextVar
 
 from fastapi import Request
@@ -29,8 +30,17 @@ class RequestIDMiddleware:
         app: ASGIApp,
         request_id_header_name: str = REQUEST_ID_HEADER_NAME,
         session_id_header_name: str = SESSION_ID_HEADER_NAME,
+        header_name: str | None = None,
     ) -> None:
         self.app = app
+        if header_name is not None:
+            warnings.warn(
+                "'header_name' is deprecated and will be removed in a future release. "
+                "Use 'request_id_header_name' instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            request_id_header_name = header_name
         self.request_id_header_name = request_id_header_name
         self.session_id_header_name = session_id_header_name
 
