@@ -5,7 +5,7 @@ from httpx import AsyncClient, HTTPStatusError, RequestError, Response
 from loguru import logger
 
 from ash_utils import constants
-from ash_utils.middlewares import request_id_var
+from ash_utils.middlewares import request_id_var, session_id_var
 
 
 class BaseApi:
@@ -19,9 +19,15 @@ class BaseApi:
             self.text = text
             self.response = response
 
-    def __init__(self, client: AsyncClient, request_id_header_name: str = constants.REQUEST_ID_HEADER_NAME) -> None:
+    def __init__(
+        self,
+        client: AsyncClient,
+        request_id_header_name: str = constants.REQUEST_ID_HEADER_NAME,
+        session_id_header_name: str = constants.SESSION_ID_HEADER_NAME,
+    ) -> None:
         self.client = client
         self.request_id_header_name = request_id_header_name
+        self.session_id_header_name = session_id_header_name
 
     async def _send_request(
         self,
@@ -37,6 +43,10 @@ class BaseApi:
                 headers = {self.request_id_header_name: request_id_var.get()}
             else:
                 headers[self.request_id_header_name] = request_id_var.get()
+
+            session_id = session_id_var.get()
+            if session_id:
+                headers[self.session_id_header_name] = session_id
 
             logger.info("Send request")
 

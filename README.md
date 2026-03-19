@@ -60,7 +60,11 @@ async def root():
 
 2. RequestIDMiddleware
 
-*Purpose:* Add request ID tracking to headers and logs for better request correlation.
+*Purpose:* Add request/session ID tracking to headers and logs for better request correlation.
+
+If the request and/or session headers are present in a request, they will be passed along in downstream requests.
+If the request header is not present, one will be generated and returned in the response, which the caller could use.
+A session header is not automatically generated since it is assumed that the most upstream service will track that state.
 
 ```python
 from fastapi import FastAPI
@@ -68,7 +72,7 @@ from ash_utils.middlewares import RequestIDMiddleware
 
 app = FastAPI()
 
-# Add middleware with default header name (X-Request-ID)
+# Add middleware with default header names (X-Request-ID, X-Session-ID)
 app.add_middleware(RequestIDMiddleware)
 
 @app.get("/")
@@ -82,6 +86,7 @@ Example Request/Response:
 GET / HTTP/1.1
 Host: localhost:8000
 X-Request-ID: 123e4567-e89b-12d3-a456-426614174000
+X-Session-ID: b0430c9b-64ac-4ee0-a114-958ba6cedcdd
 
 HTTP/1.1 200 OK
 X-Request-ID: 123e4567-e89b-12d3-a456-426614174000
@@ -89,7 +94,7 @@ X-Request-ID: 123e4567-e89b-12d3-a456-426614174000
 
 3. BaseApi (HTTP Client)
 
-*Purpose:* Make HTTP requests with automatic error handling and request ID propagation.
+*Purpose:* Make HTTP requests with automatic error handling and request/session ID propagation.
 
 ```python
 from http import HTTPMethod
@@ -190,9 +195,11 @@ Middleware Configuration Options:
     - `response_error_message`: Error message to return to clients
     - `response_status_code`: HTTP status code to return (default: 500)
 - RequestIDMiddleware
-  - `header_name`: Custom header name for request ID (default: X-Request-ID)
+  - `request_id_header_name`: Custom header name for request ID (default: X-Request-ID)
+  - `session_id_header_name`: Custom header name for session ID (default: X-Session-ID)
 - BaseApi Configuration
   - `request_id_header_name`: Header name for request ID propagation (default: X-Request-ID)
+  - `session_id_header_name`: Header name for session ID propagation (default: X-Session-ID)
   - `context_keys`: List of keys that should be searched in the request body and added to the logger context when the exception is reported (eg: `["orderId", "kitId"]`). The key will be converted to snake case when added to the logger context.
 
 
