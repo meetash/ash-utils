@@ -11,9 +11,8 @@ from ash_utils.aoe.answer_validator import (
     SelectAoeAnswerTypeValidator,
     TextAoeAnswerTypeValidator,
 )
+from ash_utils.aoe.exceptions import AoeAnswerInvalidError, AoeQuestionConfigurationError
 from ash_utils.aoe.types import AoeQuestionInputType, AoeQuestionValidationInput
-
-AoeAnswerInvalidError = AoeAnswerValidator.AoeAnswerInvalidError
 
 
 def _question(
@@ -98,3 +97,12 @@ class TestValidationBehavior:
         )
 
         assert validator.validate_and_format(question, "a|b") == "A,B"
+
+    def test_select_without_options_raises_configuration_error_not_wrapped(self) -> None:
+        validator = AoeAnswerValidator()
+        question = _question(question_type=AoeQuestionInputType.select, options=None)
+
+        with pytest.raises(AoeQuestionConfigurationError) as exc_info:
+            validator.validate_and_format(question, "male")
+
+        assert exc_info.value.question_id == "q1"

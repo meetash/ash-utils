@@ -1,5 +1,6 @@
 import pytest
 
+from ash_utils.aoe.exceptions import AoeQuestionConfigurationError
 from ash_utils.aoe.type_validators import (
     BooleanAoeAnswerTypeValidator,
     DateAoeAnswerTypeValidator,
@@ -185,17 +186,18 @@ class TestSelectAoeAnswerTypeValidator:
         question = _question(question_type=AoeQuestionInputType.select, options=options)
         assert self.validator.validate_and_format(question, answer) == expected
 
-    @pytest.mark.parametrize(
-        ("answer", "options"),
-        [
-            ("other", {"male": "M", "female": "F"}),
-            ("male", None),
-        ],
-    )
-    def test_invalid_cases(self, answer: str, options: dict | None) -> None:
-        question = _question(question_type=AoeQuestionInputType.select, options=options)
+    def test_invalid_answer_raises_value_error(self) -> None:
+        question = _question(
+            question_type=AoeQuestionInputType.select,
+            options={"male": "M", "female": "F"},
+        )
         with pytest.raises(ValueError):
-            self.validator.validate_and_format(question, answer)
+            self.validator.validate_and_format(question, "other")
+
+    def test_missing_options_raises_configuration_error(self) -> None:
+        question = _question(question_type=AoeQuestionInputType.select, options=None)
+        with pytest.raises(AoeQuestionConfigurationError):
+            self.validator.validate_and_format(question, "male")
 
 
 class TestMultiSelectAoeAnswerTypeValidator:
@@ -219,16 +221,24 @@ class TestMultiSelectAoeAnswerTypeValidator:
         )
         assert self.validator.validate_and_format(question, answer) == expected
 
+    def test_missing_options_raises_configuration_error(self) -> None:
+        question = _question(
+            question_type=AoeQuestionInputType.multi_select,
+            options=None,
+            validation_rules={"multi_select_delimiter": ","},
+        )
+        with pytest.raises(AoeQuestionConfigurationError):
+            self.validator.validate_and_format(question, "a")
+
     @pytest.mark.parametrize(
         ("answer", "options", "rules"),
         [
-            ("a", None, {"multi_select_delimiter": ","}),
             ("a", {"a": "A"}, None),
             ("", {"a": "A"}, {"multi_select_delimiter": ","}),
             ("a|x", {"a": "A"}, {"multi_select_delimiter": ","}),
         ],
     )
-    def test_invalid_cases(self, answer: str, options: dict | None, rules: dict | None) -> None:
+    def test_invalid_cases_value_error(self, answer: str, options: dict | None, rules: dict | None) -> None:
         question = _question(
             question_type=AoeQuestionInputType.multi_select,
             options=options,

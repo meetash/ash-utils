@@ -3,6 +3,7 @@ from datetime import date, datetime
 
 from pydantic import TypeAdapter, ValidationError
 
+from ash_utils.aoe.exceptions import AoeQuestionConfigurationError
 from ash_utils.aoe.types import AoeQuestionValidationInput
 
 
@@ -99,7 +100,7 @@ class SelectAoeAnswerTypeValidator(AoeAnswerTypeValidator):
         options = question.options
         if not options:
             msg = "options mapping is required for select questions"
-            raise ValueError(msg)
+            raise AoeQuestionConfigurationError(question.question_id, msg)
         key = answer.strip().lower()
         match = next((candidate for candidate in options if candidate.strip().lower() == key), None)
         if match is None:
@@ -115,7 +116,7 @@ class MultiSelectAoeAnswerTypeValidator(AoeAnswerTypeValidator):
         options = question.options
         if not options:
             msg = "options mapping is required for multi_select questions"
-            raise ValueError(msg)
+            raise AoeQuestionConfigurationError(question.question_id, msg)
         output_delimiter = (question.validation_rules or {}).get("multi_select_delimiter")
         if not output_delimiter:
             msg = "validation_rules.multi_select_delimiter is required for multi_select questions"
@@ -125,9 +126,7 @@ class MultiSelectAoeAnswerTypeValidator(AoeAnswerTypeValidator):
             msg = "at least one value is required"
             raise ValueError(msg)
         tokens = tuple(
-            token.strip()
-            for token in stripped_answer.split(self.MULTI_SELECT_INPUT_SEPARATOR)
-            if token.strip()
+            token.strip() for token in stripped_answer.split(self.MULTI_SELECT_INPUT_SEPARATOR) if token.strip()
         )
         if not tokens:
             msg = "at least one value is required"
