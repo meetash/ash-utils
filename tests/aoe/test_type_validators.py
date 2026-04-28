@@ -19,8 +19,8 @@ def _question(
     options: dict | None = None,
 ) -> AoeQuestionValidationInput:
     return AoeQuestionValidationInput(
-        ash_question_id="q1",
-        ash_question_type=question_type,
+        question_id="q1",
+        type=question_type,
         validation_rules=validation_rules,
         options=options,
     )

@@ -17,10 +17,10 @@ class AoeAnswerValidator:
     class AoeAnswerInvalidError(ValueError):
         """Raised when an AOE answer fails validation for a specific question."""
 
-        def __init__(self, ash_question_id: str, message: str) -> None:
-            self.ash_question_id = ash_question_id
+        def __init__(self, question_id: str, message: str) -> None:
+            self.question_id = question_id
             self.message = message
-            super().__init__(f"Invalid answer for AOE question '{ash_question_id}': {message}")
+            super().__init__(f"Invalid answer for AOE question '{question_id}': {message}")
 
     def __init__(
         self,
@@ -30,16 +30,16 @@ class AoeAnswerValidator:
 
     def validate_and_format(self, question: AoeQuestionValidationInput, answer: str) -> str:
         """Validate `answer` against `question` and return the lab-formatted string."""
-        validator = self.type_validators.get(question.ash_question_type)
+        validator = self.type_validators.get(question.type)
         if validator is None:
             raise self.AoeAnswerInvalidError(
-                question.ash_question_id,
-                f"unsupported question type '{question.ash_question_type}'",
+                question.question_id,
+                f"unsupported question type '{question.type}'",
             )
         try:
             return validator.validate_and_format(question, answer)
         except ValueError as exc:
-            raise self.AoeAnswerInvalidError(question.ash_question_id, str(exc)) from exc
+            raise self.AoeAnswerInvalidError(question.question_id, str(exc)) from exc
 
     @staticmethod
     def _build_default_type_validators() -> dict[AoeQuestionInputType, AoeAnswerTypeValidator]:
