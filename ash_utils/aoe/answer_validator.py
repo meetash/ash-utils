@@ -13,7 +13,7 @@ from ash_utils.aoe.types import AoeQuestionInputType, AoeQuestionValidationInput
 
 
 class AoeAnswerValidator:
-    """Dispatch validation/formatting by AOE question input type."""
+    """Dispatch validation by AOE question input type."""
 
     def __init__(
         self,
@@ -21,8 +21,8 @@ class AoeAnswerValidator:
     ) -> None:
         self.type_validators = type_validators or self._build_default_type_validators()
 
-    def validate_and_format(self, question: AoeQuestionValidationInput, answer: str) -> str:
-        """Validate `answer` against `question` and return the lab-formatted string.
+    def validate(self, question: AoeQuestionValidationInput, answer: str) -> None:
+        """Validate ``answer`` against ``question``.
 
         User input issues are raised as `AoeAnswerInvalidError`. Missing question
         metadata (e.g. options for select) is raised as `AoeQuestionConfigurationError`
@@ -35,7 +35,7 @@ class AoeAnswerValidator:
                 f"unsupported question type '{question.type}'",
             )
         try:
-            return validator.validate_and_format(question, answer)
+            validator.validate(question, answer)
         except ValueError as exc:
             raise AoeAnswerInvalidError(question.question_id, str(exc)) from exc
 

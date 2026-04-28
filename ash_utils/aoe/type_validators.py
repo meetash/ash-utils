@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from datetime import date, datetime
+from datetime import datetime
 
 from pydantic import TypeAdapter, ValidationError
 
@@ -9,12 +9,12 @@ from ash_utils.aoe.types import AoeQuestionValidationInput
 
 class AoeAnswerTypeValidator(ABC):
     @abstractmethod
-    def validate_and_format(self, question: AoeQuestionValidationInput, answer: str) -> str:
-        """Validate answer and return formatted value."""
+    def validate(self, question: AoeQuestionValidationInput, answer: str) -> None:
+        """Validate answer; raise ``ValueError`` or ``AoeQuestionConfigurationError`` on failure."""
 
 
 class NumberAoeAnswerTypeValidator(AoeAnswerTypeValidator):
-    def validate_and_format(self, question: AoeQuestionValidationInput, answer: str) -> str:
+    def validate(self, question: AoeQuestionValidationInput, answer: str) -> None:
         try:
             value = float(answer)
         except ValueError as exc:
@@ -33,11 +33,10 @@ class NumberAoeAnswerTypeValidator(AoeAnswerTypeValidator):
         if "lt" in rules and not value < rules["lt"]:
             msg = f"value {value} must be < {rules['lt']}"
             raise ValueError(msg)
-        return answer
 
 
 class TextAoeAnswerTypeValidator(AoeAnswerTypeValidator):
-    def validate_and_format(self, question: AoeQuestionValidationInput, answer: str) -> str:
+    def validate(self, question: AoeQuestionValidationInput, answer: str) -> None:
         rules = question.validation_rules or {}
         min_length = rules.get("min_length")
         max_length = rules.get("max_length")
@@ -47,80 +46,58 @@ class TextAoeAnswerTypeValidator(AoeAnswerTypeValidator):
         if max_length is not None and len(answer) > max_length:
             msg = f"length {len(answer)} exceeds max_length {max_length}"
             raise ValueError(msg)
-        return answer
 
 
 class BooleanAoeAnswerTypeValidator(AoeAnswerTypeValidator):
     _BOOL_ADAPTER = TypeAdapter(bool)
 
-    def validate_and_format(self, question: AoeQuestionValidationInput, answer: str) -> str:  # noqa: ARG002
+    def validate(self, question: AoeQuestionValidationInput, answer: str) -> None:  # noqa: ARG002
         try:
-            parsed: bool = self._BOOL_ADAPTER.validate_python(answer)
+            self._BOOL_ADAPTER.validate_python(answer)
         except ValidationError as exc:
             msg = f"'{answer}' is not a recognised boolean"
             raise ValueError(msg) from exc
-        return "true" if parsed else "false"
 
 
-class _StrftimeFormattingTypeValidator(AoeAnswerTypeValidator, ABC):
-    @abstractmethod
-    def _parse(self, answer: str) -> date | datetime:
-        """Parse answer into date-like value."""
-
-    def validate_and_format(self, question: AoeQuestionValidationInput, answer: str) -> str:
-        parsed = self._parse(answer)
-        rules = question.validation_rules or {}
-        output_format = rules.get("format")
-        if not output_format:
-            msg = "validation_rules.format is required for date/datetime questions"
-            raise ValueError(msg)
-        return parsed.strftime(output_format)
-
-
-class DateAoeAnswerTypeValidator(_StrftimeFormattingTypeValidator):
-    def _parse(self, answer: str) -> date:
+class DateAoeAnswerTypeValidator(AoeAnswerTypeValidator):
+    def validate(self, question: AoeQuestionValidationInput, answer: str) -> None:  # noqa: ARG002
         try:
-            return datetime.fromisoformat(answer).date()
+            datetime.fromisoformat(answer)
         except ValueError as exc:
             msg = f"'{answer}' is not a valid RFC-3339 date"
             raise ValueError(msg) from exc
 
 
-class DatetimeAoeAnswerTypeValidator(_StrftimeFormattingTypeValidator):
-    def _parse(self, answer: str) -> datetime:
+class DatetimeAoeAnswerTypeValidator(AoeAnswerTypeValidator):
+    def validate(self, question: AoeQuestionValidationInput, answer: str) -> None:  # noqa: ARG002
         try:
-            return datetime.fromisoformat(answer)
+            datetime.fromisoformat(answer)
         except ValueError as exc:
             msg = f"'{answer}' is not a valid RFC-3339 datetime"
             raise ValueError(msg) from exc
 
 
 class SelectAoeAnswerTypeValidator(AoeAnswerTypeValidator):
-    def validate_and_format(self, question: AoeQuestionValidationInput, answer: str) -> str:
+    def validate(self, question: AoeQuestionValidationInput, answer: str) -> None:
         options = question.options
         if not options:
-            msg = "options mapping is required for select questions"
+            msg = "options are required for select questions"
             raise AoeQuestionConfigurationError(question.question_id, msg)
         key = answer.strip().lower()
         match = next((candidate for candidate in options if candidate.strip().lower() == key), None)
         if match is None:
-            msg = f"'{answer}' is not one of allowed values: {sorted(options.keys())}"
+            msg = f"'{answer}' is not one of allowed values: {sorted(options)}"
             raise ValueError(msg)
-        return str(options[match])
 
 
 class MultiSelectAoeAnswerTypeValidator(AoeAnswerTypeValidator):
     MULTI_SELECT_INPUT_SEPARATOR = "|"
 
-    def validate_and_format(self, question: AoeQuestionValidationInput, answer: str) -> str:
+    def validate(self, question: AoeQuestionValidationInput, answer: str) -> None:
         options = question.options
         if not options:
             msg = "options mapping is required for multi_select questions"
             raise AoeQuestionConfigurationError(question.question_id, msg)
-        output_delimiter = (question.validation_rules or {}).get("multi_select_delimiter")
-        if not output_delimiter:
-            msg = "validation_rules.multi_select_delimiter is required for multi_select questions"
-            raise ValueError(msg)
         stripped_answer = answer.strip().lower()
         if not stripped_answer:
             msg = "at least one value is required"
@@ -133,14 +110,10 @@ class MultiSelectAoeAnswerTypeValidator(AoeAnswerTypeValidator):
             raise ValueError(msg)
 
         unknown: list[str] = []
-        expanded: list[str] = []
         for token in tokens:
             key_match = next((candidate for candidate in options if candidate.strip().lower() == token), None)
             if key_match is None:
                 unknown.append(token)
-                continue
-            expanded.append(str(options[key_match]))
         if unknown:
-            msg = f"unknown value(s): {unknown}. Allowed: {sorted(options.keys())}"
+            msg = f"unknown value(s): {unknown}. Allowed: {sorted(options)}"
             raise ValueError(msg)
-        return output_delimiter.join(expanded)

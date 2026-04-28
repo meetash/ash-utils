@@ -33,15 +33,15 @@ class TestNumberAoeAnswerTypeValidator:
         self.validator = NumberAoeAnswerTypeValidator()
 
     @pytest.mark.parametrize(
-        ("answer", "rules", "expected"),
+        ("answer", "rules"),
         [
-            ("42", None, "42"),
-            ("3.14", {"gte": 0.0, "lte": 10.0}, "3.14"),
+            ("42", None),
+            ("3.14", {"gte": 0.0, "lte": 10.0}),
         ],
     )
-    def test_valid_cases(self, answer: str, rules: dict | None, expected: str) -> None:
+    def test_valid_cases(self, answer: str, rules: dict | None) -> None:
         question = _question(question_type=AoeQuestionInputType.number, validation_rules=rules)
-        assert self.validator.validate_and_format(question, answer) == expected
+        self.validator.validate(question, answer)
 
     @pytest.mark.parametrize(
         ("answer", "rules"),
@@ -56,7 +56,7 @@ class TestNumberAoeAnswerTypeValidator:
     def test_invalid_cases(self, answer: str, rules: dict | None) -> None:
         question = _question(question_type=AoeQuestionInputType.number, validation_rules=rules)
         with pytest.raises(ValueError):
-            self.validator.validate_and_format(question, answer)
+            self.validator.validate(question, answer)
 
 
 class TestTextAoeAnswerTypeValidator:
@@ -65,15 +65,15 @@ class TestTextAoeAnswerTypeValidator:
         self.validator = TextAoeAnswerTypeValidator()
 
     @pytest.mark.parametrize(
-        ("answer", "rules", "expected"),
+        ("answer", "rules"),
         [
-            ("abc", {"min_length": 2, "max_length": 5}, "abc"),
-            ("hello", None, "hello"),
+            ("abc", {"min_length": 2, "max_length": 5}),
+            ("hello", None),
         ],
     )
-    def test_valid_cases(self, answer: str, rules: dict | None, expected: str) -> None:
+    def test_valid_cases(self, answer: str, rules: dict | None) -> None:
         question = _question(question_type=AoeQuestionInputType.text, validation_rules=rules)
-        assert self.validator.validate_and_format(question, answer) == expected
+        self.validator.validate(question, answer)
 
     @pytest.mark.parametrize(
         ("answer", "rules"),
@@ -85,7 +85,7 @@ class TestTextAoeAnswerTypeValidator:
     def test_invalid_cases(self, answer: str, rules: dict | None) -> None:
         question = _question(question_type=AoeQuestionInputType.text, validation_rules=rules)
         with pytest.raises(ValueError):
-            self.validator.validate_and_format(question, answer)
+            self.validator.validate(question, answer)
 
 
 class TestBooleanAoeAnswerTypeValidator:
@@ -93,23 +93,15 @@ class TestBooleanAoeAnswerTypeValidator:
     def _setup(self) -> None:
         self.validator = BooleanAoeAnswerTypeValidator()
 
-    @pytest.mark.parametrize(
-        ("answer", "expected"),
-        [
-            ("true", "true"),
-            ("False", "false"),
-            ("yes", "true"),
-            ("0", "false"),
-        ],
-    )
-    def test_valid_cases(self, answer: str, expected: str) -> None:
+    @pytest.mark.parametrize("answer", ["true", "False", "yes", "0"])
+    def test_valid_cases(self, answer: str) -> None:
         question = _question(question_type=AoeQuestionInputType.boolean)
-        assert self.validator.validate_and_format(question, answer) == expected
+        self.validator.validate(question, answer)
 
     def test_invalid_case(self) -> None:
         question = _question(question_type=AoeQuestionInputType.boolean)
         with pytest.raises(ValueError):
-            self.validator.validate_and_format(question, "maybe")
+            self.validator.validate(question, "maybe")
 
 
 class TestDateAoeAnswerTypeValidator:
@@ -118,27 +110,18 @@ class TestDateAoeAnswerTypeValidator:
         self.validator = DateAoeAnswerTypeValidator()
 
     @pytest.mark.parametrize(
-        ("answer", "rules", "expected"),
-        [
-            ("2025-06-22", {"format": "%Y%m%d"}, "20250622"),
-            ("2025-06-22T15:00:00+00:00", {"format": "%Y%m%d"}, "20250622"),
-        ],
+        "answer",
+        ["2025-06-22", "2025-06-22T15:00:00+00:00"],
     )
-    def test_valid_cases(self, answer: str, rules: dict, expected: str) -> None:
-        question = _question(question_type=AoeQuestionInputType.date, validation_rules=rules)
-        assert self.validator.validate_and_format(question, answer) == expected
+    def test_valid_rfc3339_date_strings(self, answer: str) -> None:
+        question = _question(question_type=AoeQuestionInputType.date)
+        self.validator.validate(question, answer)
 
-    @pytest.mark.parametrize(
-        ("answer", "rules"),
-        [
-            ("not-a-date", {"format": "%Y%m%d"}),
-            ("2025-06-22", None),
-        ],
-    )
-    def test_invalid_cases(self, answer: str, rules: dict | None) -> None:
-        question = _question(question_type=AoeQuestionInputType.date, validation_rules=rules)
+    @pytest.mark.parametrize("answer", ["not-a-date", ""])
+    def test_invalid_cases(self, answer: str) -> None:
+        question = _question(question_type=AoeQuestionInputType.date)
         with pytest.raises(ValueError):
-            self.validator.validate_and_format(question, answer)
+            self.validator.validate(question, answer)
 
 
 class TestDatetimeAoeAnswerTypeValidator:
@@ -147,27 +130,20 @@ class TestDatetimeAoeAnswerTypeValidator:
         self.validator = DatetimeAoeAnswerTypeValidator()
 
     @pytest.mark.parametrize(
-        ("answer", "rules", "expected"),
+        "answer",
         [
-            ("2025-06-22T15:30:45+00:00", {"format": "%Y%m%d%H%M%S"}, "20250622153045"),
-            ("2025-06-22T15:30:45-05:00", {"format": "%Y%m%d%H%M%S%z"}, "20250622153045-0500"),
+            "2025-06-22T15:30:45+00:00",
+            "2025-06-22T15:30:45-05:00",
         ],
     )
-    def test_valid_cases(self, answer: str, rules: dict, expected: str) -> None:
-        question = _question(question_type=AoeQuestionInputType.datetime, validation_rules=rules)
-        assert self.validator.validate_and_format(question, answer) == expected
+    def test_valid_rfc3339_datetime_strings(self, answer: str) -> None:
+        question = _question(question_type=AoeQuestionInputType.datetime)
+        self.validator.validate(question, answer)
 
-    @pytest.mark.parametrize(
-        ("answer", "rules"),
-        [
-            ("not-a-datetime", {"format": "%Y%m%d%H%M%S"}),
-            ("2025-06-22T15:30:45+00:00", None),
-        ],
-    )
-    def test_invalid_cases(self, answer: str, rules: dict | None) -> None:
-        question = _question(question_type=AoeQuestionInputType.datetime, validation_rules=rules)
+    def test_invalid_cases(self) -> None:
+        question = _question(question_type=AoeQuestionInputType.datetime)
         with pytest.raises(ValueError):
-            self.validator.validate_and_format(question, answer)
+            self.validator.validate(question, "not-a-datetime")
 
 
 class TestSelectAoeAnswerTypeValidator:
@@ -176,15 +152,12 @@ class TestSelectAoeAnswerTypeValidator:
         self.validator = SelectAoeAnswerTypeValidator()
 
     @pytest.mark.parametrize(
-        ("answer", "options", "expected"),
-        [
-            ("male", {"male": "M", "female": "F"}, "M"),
-            (" Female ", {"male": "M", "female": "F"}, "F"),
-        ],
+        "answer",
+        ["male", " Female "],
     )
-    def test_valid_cases(self, answer: str, options: dict, expected: str) -> None:
-        question = _question(question_type=AoeQuestionInputType.select, options=options)
-        assert self.validator.validate_and_format(question, answer) == expected
+    def test_valid_cases(self, answer: str) -> None:
+        question = _question(question_type=AoeQuestionInputType.select, options=("male", "female"))
+        self.validator.validate(question, answer)
 
     def test_invalid_answer_raises_value_error(self) -> None:
         question = _question(
@@ -192,12 +165,12 @@ class TestSelectAoeAnswerTypeValidator:
             options={"male": "M", "female": "F"},
         )
         with pytest.raises(ValueError):
-            self.validator.validate_and_format(question, "other")
+            self.validator.validate(question, "other")
 
     def test_missing_options_raises_configuration_error(self) -> None:
         question = _question(question_type=AoeQuestionInputType.select, options=None)
         with pytest.raises(AoeQuestionConfigurationError):
-            self.validator.validate_and_format(question, "male")
+            self.validator.validate(question, "male")
 
 
 class TestMultiSelectAoeAnswerTypeValidator:
@@ -206,43 +179,32 @@ class TestMultiSelectAoeAnswerTypeValidator:
         self.validator = MultiSelectAoeAnswerTypeValidator()
 
     @pytest.mark.parametrize(
-        ("answer", "options", "rules", "expected"),
-        [
-            ("a", {"a": "A", "b": "B"}, {"multi_select_delimiter": ","}, "A"),
-            ("a|b", {"a": "A", "b": "B"}, {"multi_select_delimiter": ","}, "A,B"),
-            (" a | b ", {"a": "A", "b": "B"}, {"multi_select_delimiter": ";"}, "A;B"),
-        ],
+        "answer",
+        ["a", "a|b", " a | b "],
     )
-    def test_valid_cases(self, answer: str, options: dict, rules: dict, expected: str) -> None:
+    def test_valid_cases(self, answer: str) -> None:
         question = _question(
             question_type=AoeQuestionInputType.multi_select,
-            options=options,
-            validation_rules=rules,
+            options=("a", "b"),
         )
-        assert self.validator.validate_and_format(question, answer) == expected
+        self.validator.validate(question, answer)
 
     def test_missing_options_raises_configuration_error(self) -> None:
-        question = _question(
-            question_type=AoeQuestionInputType.multi_select,
-            options=None,
-            validation_rules={"multi_select_delimiter": ","},
-        )
+        question = _question(question_type=AoeQuestionInputType.multi_select, options=None)
         with pytest.raises(AoeQuestionConfigurationError):
-            self.validator.validate_and_format(question, "a")
+            self.validator.validate(question, "a")
 
     @pytest.mark.parametrize(
-        ("answer", "options", "rules"),
+        ("answer", "options"),
         [
-            ("a", {"a": "A"}, None),
-            ("", {"a": "A"}, {"multi_select_delimiter": ","}),
-            ("a|x", {"a": "A"}, {"multi_select_delimiter": ","}),
+            ("", ("a",)),
+            ("a|x", ("a",)),
         ],
     )
-    def test_invalid_cases_value_error(self, answer: str, options: dict | None, rules: dict | None) -> None:
+    def test_invalid_cases_value_error(self, answer: str, options: tuple[str, ...] | None) -> None:
         question = _question(
             question_type=AoeQuestionInputType.multi_select,
             options=options,
-            validation_rules=rules,
         )
         with pytest.raises(ValueError):
-            self.validator.validate_and_format(question, answer)
+            self.validator.validate(question, answer)

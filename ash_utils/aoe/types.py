@@ -1,10 +1,10 @@
+import typing as t
 from enum import StrEnum
-from typing import Any
 
 from pydantic import BaseModel, ConfigDict
 
-ValidationRules = dict[str, Any]
-AnswerOptions = dict[str, Any]
+ValidationRules = dict[str, t.Any]
+AnswerOptions = t.Iterable[str]
 
 
 class AoeQuestionInputType(StrEnum):

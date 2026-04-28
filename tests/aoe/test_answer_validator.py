@@ -62,47 +62,48 @@ class TestValidationBehavior:
         validator = AoeAnswerValidator()
         question = _question(question_type=AoeQuestionInputType.number)
 
-        assert validator.validate_and_format(question, "3.14") == "3.14"
+        validator.validate(question, "3.14")
 
     def test_number_validator_rejects_invalid_number(self) -> None:
         validator = AoeAnswerValidator()
         question = _question(question_type=AoeQuestionInputType.number)
 
         with pytest.raises(AoeAnswerInvalidError):
-            validator.validate_and_format(question, "abc")
+            validator.validate(question, "abc")
 
-    @pytest.mark.parametrize(
-        ("raw", "expected"),
-        [("true", "true"), ("False", "false"), ("yes", "true"), ("0", "false")],
-    )
-    def test_boolean_validator_returns_canonical_values(self, raw: str, expected: str) -> None:
+    @pytest.mark.parametrize("raw", ["true", "False", "yes", "0"])
+    def test_boolean_validator_accepts_recognised_values(self, raw: str) -> None:
         validator = AoeAnswerValidator()
         question = _question(question_type=AoeQuestionInputType.boolean)
 
-        assert validator.validate_and_format(question, raw) == expected
+        validator.validate(question, raw)
 
-    def test_date_validator_requires_format(self) -> None:
+    def test_date_validator_accepts_rfc3339_date(self) -> None:
         validator = AoeAnswerValidator()
-        question = _question(question_type=AoeQuestionInputType.date, validation_rules=None)
+        question = _question(question_type=AoeQuestionInputType.date)
 
-        with pytest.raises(AoeAnswerInvalidError):
-            validator.validate_and_format(question, "2025-06-22")
+        validator.validate(question, "2025-06-22")
 
-    def test_multi_select_validator_maps_and_joins_values(self) -> None:
+    def test_date_validator_accepts_datetime_string_for_date_question(self) -> None:
+        validator = AoeAnswerValidator()
+        question = _question(question_type=AoeQuestionInputType.date)
+
+        validator.validate(question, "2025-06-22T15:00:00+00:00")
+
+    def test_multi_select_validator_accepts_pipe_separated_keys(self) -> None:
         validator = AoeAnswerValidator()
         question = _question(
             question_type=AoeQuestionInputType.multi_select,
-            options={"a": "A", "b": "B"},
-            validation_rules={"multi_select_delimiter": ","},
+            options=("a", "b"),
         )
 
-        assert validator.validate_and_format(question, "a|b") == "A,B"
+        validator.validate(question, "a|b")
 
     def test_select_without_options_raises_configuration_error_not_wrapped(self) -> None:
         validator = AoeAnswerValidator()
         question = _question(question_type=AoeQuestionInputType.select, options=None)
 
         with pytest.raises(AoeQuestionConfigurationError) as exc_info:
-            validator.validate_and_format(question, "male")
+            validator.validate(question, "male")
 
         assert exc_info.value.question_id == "q1"
