@@ -1,5 +1,3 @@
-# ruff: noqa: INP001, I001, S101
-
 import pytest
 
 from ash_utils.aoe.type_validators import (
