@@ -125,9 +125,9 @@ class MultiSelectAoeAnswerTypeValidator(AoeAnswerTypeValidator):
             msg = "at least one value is required"
             raise ValueError(msg)
         tokens = tuple(
-            token.strip().lower()
+            token.strip()
             for token in stripped_answer.split(self.MULTI_SELECT_INPUT_SEPARATOR)
-            if token.strip().lower()
+            if token.strip()
         )
         if not tokens:
             msg = "at least one value is required"
