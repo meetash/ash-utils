@@ -1,7 +1,6 @@
 import pytest
 
 from ash_utils.aoe.type_validators import (
-    AoeAnswerInvalidError,
     BooleanAoeAnswerTypeValidator,
     DateAoeAnswerTypeValidator,
     DatetimeAoeAnswerTypeValidator,
@@ -55,7 +54,7 @@ class TestNumberAoeAnswerTypeValidator:
     )
     def test_invalid_cases(self, answer: str, rules: dict | None) -> None:
         question = _question(question_type=AoeQuestionInputType.number, validation_rules=rules)
-        with pytest.raises(AoeAnswerInvalidError):
+        with pytest.raises(ValueError):
             self.validator.validate_and_format(question, answer)
 
 
@@ -84,7 +83,7 @@ class TestTextAoeAnswerTypeValidator:
     )
     def test_invalid_cases(self, answer: str, rules: dict | None) -> None:
         question = _question(question_type=AoeQuestionInputType.text, validation_rules=rules)
-        with pytest.raises(AoeAnswerInvalidError):
+        with pytest.raises(ValueError):
             self.validator.validate_and_format(question, answer)
 
 
@@ -108,7 +107,7 @@ class TestBooleanAoeAnswerTypeValidator:
 
     def test_invalid_case(self) -> None:
         question = _question(question_type=AoeQuestionInputType.boolean)
-        with pytest.raises(AoeAnswerInvalidError):
+        with pytest.raises(ValueError):
             self.validator.validate_and_format(question, "maybe")
 
 
@@ -137,7 +136,7 @@ class TestDateAoeAnswerTypeValidator:
     )
     def test_invalid_cases(self, answer: str, rules: dict | None) -> None:
         question = _question(question_type=AoeQuestionInputType.date, validation_rules=rules)
-        with pytest.raises(AoeAnswerInvalidError):
+        with pytest.raises(ValueError):
             self.validator.validate_and_format(question, answer)
 
 
@@ -166,7 +165,7 @@ class TestDatetimeAoeAnswerTypeValidator:
     )
     def test_invalid_cases(self, answer: str, rules: dict | None) -> None:
         question = _question(question_type=AoeQuestionInputType.datetime, validation_rules=rules)
-        with pytest.raises(AoeAnswerInvalidError):
+        with pytest.raises(ValueError):
             self.validator.validate_and_format(question, answer)
 
 
@@ -195,7 +194,7 @@ class TestSelectAoeAnswerTypeValidator:
     )
     def test_invalid_cases(self, answer: str, options: dict | None) -> None:
         question = _question(question_type=AoeQuestionInputType.select, options=options)
-        with pytest.raises(AoeAnswerInvalidError):
+        with pytest.raises(ValueError):
             self.validator.validate_and_format(question, answer)
 
 
@@ -235,5 +234,5 @@ class TestMultiSelectAoeAnswerTypeValidator:
             options=options,
             validation_rules=rules,
         )
-        with pytest.raises(AoeAnswerInvalidError):
+        with pytest.raises(ValueError):
             self.validator.validate_and_format(question, answer)

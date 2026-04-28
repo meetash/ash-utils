@@ -1,5 +1,4 @@
 from ash_utils.aoe.type_validators import (
-    AoeAnswerInvalidError,
     AoeAnswerTypeValidator,
     BooleanAoeAnswerTypeValidator,
     DateAoeAnswerTypeValidator,
@@ -15,7 +14,13 @@ from ash_utils.aoe.types import AoeQuestionInputType, AoeQuestionValidationInput
 class AoeAnswerValidator:
     """Dispatch validation/formatting by AOE question input type."""
 
-    AoeAnswerInvalidError = AoeAnswerInvalidError
+    class AoeAnswerInvalidError(ValueError):
+        """Raised when an AOE answer fails validation for a specific question."""
+
+        def __init__(self, ash_question_id: str, message: str) -> None:
+            self.ash_question_id = ash_question_id
+            self.message = message
+            super().__init__(f"Invalid answer for AOE question '{ash_question_id}': {message}")
 
     def __init__(
         self,
@@ -31,7 +36,10 @@ class AoeAnswerValidator:
                 question.ash_question_id,
                 f"unsupported question type '{question.ash_question_type}'",
             )
-        return validator.validate_and_format(question, answer)
+        try:
+            return validator.validate_and_format(question, answer)
+        except ValueError as exc:
+            raise self.AoeAnswerInvalidError(question.ash_question_id, str(exc)) from exc
 
     @staticmethod
     def _build_default_type_validators() -> dict[AoeQuestionInputType, AoeAnswerTypeValidator]:
