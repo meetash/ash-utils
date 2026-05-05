@@ -1,13 +1,8 @@
-from __future__ import annotations
-
 import re
 from collections.abc import Mapping, MutableMapping
-from typing import TYPE_CHECKING, Any, ClassVar, cast
+from typing import Any, ClassVar
 
 from loguru._recattrs import RecordException
-
-if TYPE_CHECKING:
-    from loguru import Record
 
 
 class PhiPiiLogRedactor:
@@ -86,8 +81,8 @@ class PhiPiiLogRedactor:
         flags=re.IGNORECASE,
     )
 
-    def __call__(self, record: Record) -> None:
-        self.redact_record(record=cast("MutableMapping[str, Any]", record))
+    def __call__(self, record: MutableMapping[str, Any]) -> None:
+        self.redact_record(record=record)
 
     def redact_record(self, record: MutableMapping[str, Any]) -> None:
         try:
