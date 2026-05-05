@@ -16,6 +16,7 @@ class PhiPiiLogRedactor:
     REDACTED = "[REDACTED]"
     REDACTION_ERROR = "[REDACTION_ERROR]"
     REDACTION_DEPTH = 8
+    EMAIL_LOCAL_PREFIX_VISIBLE_LEN = 3
 
     email_pattern: ClassVar[re.Pattern[str]] = re.compile(
         pattern=r"\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b",
@@ -243,12 +244,13 @@ class PhiPiiLogRedactor:
     @staticmethod
     def _redact_email(email: str) -> str:
         split_email = email.split("@")
-        safe_prefix = split_email[0][:3]
-        return (
-            f"{safe_prefix}...@{split_email[-1]}"
-            if len(safe_prefix) < len(split_email[0])
-            else f"{safe_prefix}@{split_email[-1]}"
-        )
+        local = split_email[0]
+        domain = split_email[-1]
+        visible = PhiPiiLogRedactor.EMAIL_LOCAL_PREFIX_VISIBLE_LEN
+        # If the local part is no longer than `visible`, a prefix of that length is the full local (leak).
+        if len(local) > visible:
+            return f"{local[:visible]}...@{domain}"
+        return f"...@{domain}"
 
     def _redact_test_result_objects(self, value: str) -> str:
         return self._redact_balanced_calls(value=value, head_pattern=self.result_object_head_pattern)

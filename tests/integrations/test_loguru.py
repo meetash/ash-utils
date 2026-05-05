@@ -285,3 +285,15 @@ class PhiPiiLogRedactorBranchesTestCase(TestCase):
     def test_keyed_result_value_field_redacts_via_specific_field_rule(self) -> None:
         msg = self.redactor._redact_string("result_value=positive")
         self.assertNotIn("positive", msg)
+
+    def test_redact_email_short_local_part_is_redacted(self) -> None:
+        """Local parts of 3 or fewer characters must not pass through unchanged."""
+        self.assertEqual(PhiPiiLogRedactor._redact_email("ab@example.com"), "...@example.com")
+        self.assertEqual(PhiPiiLogRedactor._redact_email("sue@test.com"), "...@test.com")
+        self.assertEqual(PhiPiiLogRedactor._redact_email("jd@clinic.org"), "...@clinic.org")
+
+    def test_redact_email_long_local_part_keeps_prefix(self) -> None:
+        self.assertEqual(
+            PhiPiiLogRedactor._redact_email("john.doe@example.com"),
+            "joh...@example.com",
+        )
