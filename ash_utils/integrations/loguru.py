@@ -233,7 +233,9 @@ class PhiPiiLogRedactor:
 
     def _get_direct_redacted_value(self, normalized_key: str, value: object) -> tuple[bool, object]:
         if self._is_email_key(normalized_key=normalized_key):
-            return True, self._redact_email(email=value) if isinstance(value, str) else value
+            if isinstance(value, str):
+                return True, self._redact_email(email=value)
+            return False, value
         if self._is_url_key(normalized_key=normalized_key):
             return True, self.REDACTED if value else value
         return False, value
@@ -255,6 +257,8 @@ class PhiPiiLogRedactor:
         parts: list[str] = []
         cursor = 0
         for match in head_pattern.finditer(string=value):
+            if match.start() < cursor:
+                continue
             parts.append(value[cursor : match.start()])
             open_paren = value.find("(", match.start())
             if open_paren == -1:
@@ -377,7 +381,14 @@ class PhiPiiLogRedactor:
 
     @staticmethod
     def _normalize_key(key: object) -> str:
-        value = re.sub(pattern=r"(?<!^)(?=[A-Z])", repl="_", string=str(object=key))
+        raw = str(object=key)
+        letters = [char for char in raw if char.isalpha()]
+        # Constant-style keys (e.g. env vars) must not be split into p_a_s_s_w_o_r_d or a_p_i__k_e_y,
+        # or sensitive substring checks miss them after normalization.
+        if letters and all(char.isupper() for char in letters):
+            value = raw
+        else:
+            value = re.sub(pattern=r"(?<!^)(?=[A-Z])", repl="_", string=raw)
         return re.sub(pattern=r"[^a-z0-9_]+", repl="_", string=value.lower()).strip("_")
 
     def _is_sensitive_key(self, normalized_key: str) -> bool:

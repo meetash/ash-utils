@@ -108,6 +108,41 @@ class PhiPiiLogRedactorBranchesTestCase(TestCase):
         self.redactor.redact_record(record)
         self.assertEqual(record["extra"], {"count": 42})
 
+    def test_normalize_key_all_caps_preserves_sensitive_tokens(self) -> None:
+        self.assertEqual(PhiPiiLogRedactor._normalize_key("PASSWORD"), "password")
+        self.assertEqual(PhiPiiLogRedactor._normalize_key("API_KEY"), "api_key")
+        self.assertEqual(PhiPiiLogRedactor._normalize_key("ACCESS_TOKEN"), "access_token")
+
+    def test_all_caps_extra_keys_redacted_like_mixed_case(self) -> None:
+        record: dict[str, Any] = {
+            "message": "",
+            "extra": {"PASSWORD": "secret-pass", "API_KEY": "sk-live", "KIT_ID": "KIT123"},
+        }
+        self.redactor.redact_record(record)
+        extra = record["extra"]
+        assert isinstance(extra, dict)
+        self.assertEqual(extra["PASSWORD"], PhiPiiLogRedactor.REDACTED)
+        self.assertEqual(extra["API_KEY"], PhiPiiLogRedactor.REDACTED)
+        self.assertEqual(extra["KIT_ID"], "KIT123")
+
+    def test_email_key_non_string_values_are_redacted_recursively(self) -> None:
+        record: dict[str, Any] = {
+            "message": "",
+            "extra": {
+                "patient_emails": ["alice@example.com", "charlie@example.org"],
+                "contact_email": {"primary": "nested@example.com"},
+            },
+        }
+        self.redactor.redact_record(record)
+        extra = record["extra"]
+        assert isinstance(extra, dict)
+        emails = extra["patient_emails"]
+        assert isinstance(emails, list)
+        self.assertEqual(len(emails), 2)
+        self.assertNotIn("alice@example.com", str(extra))
+        self.assertNotIn("charlie@example.org", str(extra))
+        self.assertNotIn("nested@example.com", str(extra))
+
     def test_list_tuple_set_extra_redacted(self) -> None:
         record: dict[str, Any] = {
             "message": "",
@@ -171,6 +206,15 @@ class PhiPiiLogRedactorBranchesTestCase(TestCase):
         # Custom head pattern matches a substring with no "(" after match.start()
         out = self.redactor._redact_balanced_calls("pre LabResult post", re.compile(r"LabResult"))
         self.assertEqual(out, "pre LabResult post")
+
+    def test_redact_balanced_calls_nested_skips_inner_match(self) -> None:
+        nested = "LabResult(inner=LabResult(x))"
+        out = self.redactor._redact_balanced_calls(
+            nested,
+            self.redactor.result_object_head_pattern,
+        )
+        self.assertEqual(out, PhiPiiLogRedactor.REDACTED)
+        self.assertEqual(out.count(PhiPiiLogRedactor.REDACTED), 1)
 
     def test_find_balanced_call_end_unbalanced_returns_length(self) -> None:
         end = PhiPiiLogRedactor._find_balanced_call_end("(abc", 0)
