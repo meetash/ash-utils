@@ -6,6 +6,8 @@ from pydantic import TypeAdapter, ValidationError
 from ash_utils.questionnaire.exceptions import QuestionConfigurationError
 from ash_utils.questionnaire.types import QuestionValidationInput
 
+MULTI_SELECT_INPUT_SEPARATOR = "|"
+
 
 class AnswerTypeValidator(ABC):
     @abstractmethod
@@ -91,7 +93,6 @@ class SelectAnswerTypeValidator(AnswerTypeValidator):
 
 
 class MultiSelectAnswerTypeValidator(AnswerTypeValidator):
-    MULTI_SELECT_INPUT_SEPARATOR = "|"
 
     def validate(self, question: QuestionValidationInput, answer: str) -> None:
         options = question.options
@@ -103,7 +104,7 @@ class MultiSelectAnswerTypeValidator(AnswerTypeValidator):
             msg = "at least one value is required"
             raise ValueError(msg)
         tokens = tuple(
-            token.strip() for token in stripped_answer.split(self.MULTI_SELECT_INPUT_SEPARATOR) if token.strip()
+            token.strip() for token in stripped_answer.split(MULTI_SELECT_INPUT_SEPARATOR) if token.strip()
         )
         if not tokens:
             msg = "at least one value is required"
