@@ -1,6 +1,6 @@
 import pytest
 
-from ash_utils.aoe.answer_validator import (
+from ash_utils.questionnaire.answer_validator import (
     AnswerTypeValidator,
     AnswerValidator,
     BooleanAnswerTypeValidator,
@@ -11,8 +11,8 @@ from ash_utils.aoe.answer_validator import (
     SelectAnswerTypeValidator,
     TextAnswerTypeValidator,
 )
-from ash_utils.aoe.exceptions import AnswerInvalidError, QuestionConfigurationError
-from ash_utils.aoe.types import QuestionInputType, QuestionValidationInput
+from ash_utils.questionnaire.exceptions import AnswerInvalidError, QuestionConfigurationError
+from ash_utils.questionnaire.types import QuestionInputType, QuestionValidationInput
 
 
 def _question(

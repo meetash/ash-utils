@@ -1,7 +1,7 @@
 import pytest
 
-from ash_utils.aoe.exceptions import QuestionConfigurationError
-from ash_utils.aoe.type_validators import (
+from ash_utils.questionnaire.exceptions import QuestionConfigurationError
+from ash_utils.questionnaire.type_validators import (
     BooleanAnswerTypeValidator,
     DateAnswerTypeValidator,
     DatetimeAnswerTypeValidator,
@@ -10,7 +10,7 @@ from ash_utils.aoe.type_validators import (
     SelectAnswerTypeValidator,
     TextAnswerTypeValidator,
 )
-from ash_utils.aoe.types import QuestionInputType, QuestionValidationInput
+from ash_utils.questionnaire.types import QuestionInputType, QuestionValidationInput
 
 
 def _question(

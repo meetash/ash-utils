@@ -3,8 +3,8 @@ from datetime import datetime
 
 from pydantic import TypeAdapter, ValidationError
 
-from ash_utils.aoe.exceptions import QuestionConfigurationError
-from ash_utils.aoe.types import QuestionValidationInput
+from ash_utils.questionnaire.exceptions import QuestionConfigurationError
+from ash_utils.questionnaire.types import QuestionValidationInput
 
 
 class AnswerTypeValidator(ABC):
