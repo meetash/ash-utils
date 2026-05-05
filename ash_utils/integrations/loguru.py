@@ -44,7 +44,7 @@ class PhiPiiLogRedactor:
         flags=re.IGNORECASE,
     )
     result_object_head_pattern: ClassVar[re.Pattern[str]] = re.compile(
-        pattern=r"\b[A-Za-z_]\w*(?:Result|Results)\w*\s*\(",
+        pattern=r"\b[A-Za-z_]\w{0,2048}Results?\w{0,2048}\s*\(",
         flags=re.IGNORECASE,
     )
     keyed_value_pattern: ClassVar[re.Pattern[str]] = re.compile(
