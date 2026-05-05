@@ -44,7 +44,7 @@ class PhiPiiLogRedactor:
         flags=re.IGNORECASE,
     )
     result_object_head_pattern: ClassVar[re.Pattern[str]] = re.compile(
-        pattern=r"\b[A-Za-z_]\w{0,2048}Results?\w{0,2048}\s*\(",
+        pattern=r"\b[a-z_]\w{0,2048}Results?\w{0,2048}\s*\(",
         flags=re.IGNORECASE,
     )
     keyed_value_pattern: ClassVar[re.Pattern[str]] = re.compile(
@@ -68,9 +68,12 @@ class PhiPiiLogRedactor:
         pattern=r"^(?:url|urls|.*_url|.*_urls)$",
         flags=re.IGNORECASE,
     )
-    address_key_pattern: ClassVar[re.Pattern[str]] = re.compile(
-        pattern=r"^(?:address(?:_line)?_?[12]?|line_?[12]|pcp_address_?[12]?|street(?:_address)?|.*_address[12])$",
-        flags=re.IGNORECASE,
+    address_key_patterns: ClassVar[tuple[re.Pattern[str], ...]] = (
+        re.compile(pattern=r"^address(?:_line)?_?[12]?$", flags=re.IGNORECASE),
+        re.compile(pattern=r"^line_?[12]$", flags=re.IGNORECASE),
+        re.compile(pattern=r"^pcp_address_?[12]?$", flags=re.IGNORECASE),
+        re.compile(pattern=r"^street(?:_address)?$", flags=re.IGNORECASE),
+        re.compile(pattern=r"^.*_address[12]$", flags=re.IGNORECASE),
     )
     address_container_key_pattern: ClassVar[re.Pattern[str]] = re.compile(
         pattern=r"^(?:address|patient_address|shipping(?:_address)?|pcp)$",
@@ -126,7 +129,7 @@ class PhiPiiLogRedactor:
         )
 
     def _redact_collection_or_object(self, value: object, *, key: str, depth: int, in_result_payload: bool) -> object:
-        if isinstance(value, list):
+        if isinstance(value, (list, set)):
             redacted_value = self._redact_items(
                 values=value,
                 key=key,
@@ -141,13 +144,6 @@ class PhiPiiLogRedactor:
                     depth=depth,
                     in_result_payload=in_result_payload,
                 ),
-            )
-        elif isinstance(value, set):
-            redacted_value = self._redact_items(
-                values=value,
-                key=key,
-                depth=depth,
-                in_result_payload=in_result_payload,
             )
         else:
             redacted_value = self._redact_object(value=value, key=key, depth=depth)
@@ -364,7 +360,7 @@ class PhiPiiLogRedactor:
             redacted_message=redacted_message,
         )
         record["exception"] = RecordException(
-            type=type(redacted_exception),
+            type=redacted_exception.__class__,
             value=redacted_exception,
             traceback=exception.traceback,
         )
@@ -372,8 +368,8 @@ class PhiPiiLogRedactor:
     @staticmethod
     def _build_redacted_exception(exception: Exception, redacted_message: str) -> Exception:
         try:
-            return type(exception)(redacted_message)
-        except Exception:
+            return exception.__class__(redacted_message)
+        except (TypeError, ValueError):
             return RuntimeError(redacted_message)
 
     @staticmethod
@@ -398,7 +394,7 @@ class PhiPiiLogRedactor:
         return self.url_key_pattern.fullmatch(string=normalized_key) is not None
 
     def _is_address_key(self, normalized_key: str) -> bool:
-        return self.address_key_pattern.fullmatch(string=normalized_key) is not None
+        return any(pattern.fullmatch(string=normalized_key) is not None for pattern in self.address_key_patterns)
 
     def _is_address_container_key(self, normalized_key: str) -> bool:
         return self.address_container_key_pattern.fullmatch(string=normalized_key) is not None
