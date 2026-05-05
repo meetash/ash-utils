@@ -7,7 +7,7 @@ ValidationRules = dict[str, t.Any]
 AnswerOptions = t.Iterable[str]
 
 
-class AoeQuestionInputType(StrEnum):
+class QuestionInputType(StrEnum):
     number = "number"
     text = "text"
     boolean = "boolean"
@@ -17,11 +17,11 @@ class AoeQuestionInputType(StrEnum):
     datetime = "datetime"
 
 
-class AoeQuestionValidationInput(BaseModel):
+class QuestionValidationInput(BaseModel):
     """Minimal question data required for answer validation and formatting."""
 
     question_id: str
-    type: AoeQuestionInputType
+    type: QuestionInputType
     validation_rules: ValidationRules | None = None
     options: AnswerOptions | None = None
 

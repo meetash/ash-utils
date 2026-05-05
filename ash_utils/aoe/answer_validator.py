@@ -1,52 +1,52 @@
-from ash_utils.aoe.exceptions import AoeAnswerInvalidError, AoeQuestionConfigurationError
+from ash_utils.aoe.exceptions import AnswerInvalidError, QuestionConfigurationError
 from ash_utils.aoe.type_validators import (
-    AoeAnswerTypeValidator,
-    BooleanAoeAnswerTypeValidator,
-    DateAoeAnswerTypeValidator,
-    DatetimeAoeAnswerTypeValidator,
-    MultiSelectAoeAnswerTypeValidator,
-    NumberAoeAnswerTypeValidator,
-    SelectAoeAnswerTypeValidator,
-    TextAoeAnswerTypeValidator,
+    AnswerTypeValidator,
+    BooleanAnswerTypeValidator,
+    DateAnswerTypeValidator,
+    DatetimeAnswerTypeValidator,
+    MultiSelectAnswerTypeValidator,
+    NumberAnswerTypeValidator,
+    SelectAnswerTypeValidator,
+    TextAnswerTypeValidator,
 )
-from ash_utils.aoe.types import AoeQuestionInputType, AoeQuestionValidationInput
+from ash_utils.aoe.types import QuestionInputType, QuestionValidationInput
 
 
-class AoeAnswerValidator:
-    """Dispatch validation by AOE question input type."""
+class AnswerValidator:
+    """Dispatch validation by question input type."""
 
     def __init__(
         self,
-        type_validators: dict[AoeQuestionInputType, AoeAnswerTypeValidator] | None = None,
+        type_validators: dict[QuestionInputType, AnswerTypeValidator] | None = None,
     ) -> None:
         self.type_validators = type_validators or self._build_default_type_validators()
 
-    def validate(self, question: AoeQuestionValidationInput, answer: str) -> None:
+    def validate(self, question: QuestionValidationInput, answer: str) -> None:
         """Validate ``answer`` against ``question``.
 
-        User input issues are raised as `AoeAnswerInvalidError`. Missing question
-        metadata (e.g. options for select) is raised as `AoeQuestionConfigurationError`
+        User input issues are raised as `AnswerInvalidError`. Missing question
+        metadata (e.g. options for select) is raised as `QuestionConfigurationError`
         and is not wrapped.
         """
         validator = self.type_validators.get(question.type)
         if validator is None:
-            raise AoeQuestionConfigurationError(
+            raise QuestionConfigurationError(
                 question.question_id,
                 f"unsupported question type '{question.type}'",
             )
         try:
             validator.validate(question, answer)
         except ValueError as exc:
-            raise AoeAnswerInvalidError(question.question_id, str(exc)) from exc
+            raise AnswerInvalidError(question.question_id, str(exc)) from exc
 
     @staticmethod
-    def _build_default_type_validators() -> dict[AoeQuestionInputType, AoeAnswerTypeValidator]:
+    def _build_default_type_validators() -> dict[QuestionInputType, AnswerTypeValidator]:
         return {
-            AoeQuestionInputType.number: NumberAoeAnswerTypeValidator(),
-            AoeQuestionInputType.text: TextAoeAnswerTypeValidator(),
-            AoeQuestionInputType.boolean: BooleanAoeAnswerTypeValidator(),
-            AoeQuestionInputType.date: DateAoeAnswerTypeValidator(),
-            AoeQuestionInputType.datetime: DatetimeAoeAnswerTypeValidator(),
-            AoeQuestionInputType.select: SelectAoeAnswerTypeValidator(),
-            AoeQuestionInputType.multi_select: MultiSelectAoeAnswerTypeValidator(),
+            QuestionInputType.number: NumberAnswerTypeValidator(),
+            QuestionInputType.text: TextAnswerTypeValidator(),
+            QuestionInputType.boolean: BooleanAnswerTypeValidator(),
+            QuestionInputType.date: DateAnswerTypeValidator(),
+            QuestionInputType.datetime: DatetimeAnswerTypeValidator(),
+            QuestionInputType.select: SelectAnswerTypeValidator(),
+            QuestionInputType.multi_select: MultiSelectAnswerTypeValidator(),
         }
