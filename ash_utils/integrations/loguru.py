@@ -226,11 +226,20 @@ class PhiPiiLogRedactor:
     def _get_direct_redacted_value(self, normalized_key: str, value: object) -> tuple[bool, object]:
         if self._is_email_key(normalized_key=normalized_key):
             if isinstance(value, str):
-                return True, self._redact_email(email=value)
+                if self._string_is_scalar_email(value=value):
+                    return True, self._redact_email(email=value)
+                return True, self.REDACTED
             return False, value
         if self._is_url_key(normalized_key=normalized_key):
             return True, self.REDACTED if value else value
         return False, value
+
+    def _string_is_scalar_email(self, *, value: str) -> bool:
+        stripped = value.strip()
+        if not stripped:
+            return False
+        match = self.email_pattern.search(string=stripped)
+        return match is not None and match.start() == 0 and match.end() == len(stripped)
 
     @staticmethod
     def _redact_email(email: str) -> str:

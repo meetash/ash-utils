@@ -297,3 +297,20 @@ class PhiPiiLogRedactorBranchesTestCase(TestCase):
             PhiPiiLogRedactor._redact_email("john.doe@example.com"),
             "joh...@example.com",
         )
+
+    def test_email_substring_key_non_email_string_is_full_redacted_not_corrupted(self) -> None:
+        """Keys matching email_key_pattern must not run _redact_email on non-email values."""
+        record: dict[str, Any] = {
+            "message": "",
+            "extra": {
+                "email_verified": "true",
+                "email_template": "welcome_001",
+            },
+        }
+        self.redactor.redact_record(record)
+        extra = record["extra"]
+        assert isinstance(extra, dict)
+        self.assertEqual(extra["email_verified"], PhiPiiLogRedactor.REDACTED)
+        self.assertEqual(extra["email_template"], PhiPiiLogRedactor.REDACTED)
+        self.assertNotIn("@true", str(extra))
+        self.assertNotIn("welcome_001", str(extra))
