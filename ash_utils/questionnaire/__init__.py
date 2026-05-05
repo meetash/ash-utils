@@ -10,9 +10,9 @@ from ash_utils.questionnaire.types import (
 )
 
 __all__ = [
+    "MULTI_SELECT_INPUT_SEPARATOR",
     "AnswerInvalidError",
     "AnswerValidator",
-    "MULTI_SELECT_INPUT_SEPARATOR",
     "QuestionAnswer",
     "QuestionConfigurationError",
     "QuestionDefinition",

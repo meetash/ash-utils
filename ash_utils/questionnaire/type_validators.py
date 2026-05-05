@@ -93,7 +93,6 @@ class SelectAnswerTypeValidator(AnswerTypeValidator):
 
 
 class MultiSelectAnswerTypeValidator(AnswerTypeValidator):
-
     def validate(self, question: QuestionValidationInput, answer: str) -> None:
         options = question.options
         if not options:
@@ -103,9 +102,7 @@ class MultiSelectAnswerTypeValidator(AnswerTypeValidator):
         if not stripped_answer:
             msg = "at least one value is required"
             raise ValueError(msg)
-        tokens = tuple(
-            token.strip() for token in stripped_answer.split(MULTI_SELECT_INPUT_SEPARATOR) if token.strip()
-        )
+        tokens = tuple(token.strip() for token in stripped_answer.split(MULTI_SELECT_INPUT_SEPARATOR) if token.strip())
         if not tokens:
             msg = "at least one value is required"
             raise ValueError(msg)
