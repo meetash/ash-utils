@@ -28,7 +28,7 @@ class PhiPiiLogRedactor:
     secret_value_pattern: ClassVar[re.Pattern[str]] = re.compile(
         pattern=(
             r"\b(auth|authorization|api[_-]?key|token|secret|password|passwd|credential|cookie)"
-            r"\b\s*[:=]\s*(bearer\s+)?[^\s,;}\]]+"
+            r"\b\s*[:=]\s*(bearer\s+)?(?!" + re.escape(REDACTED) + r")[^\s,;}\]]+"
         ),
         flags=re.IGNORECASE,
     )

@@ -225,6 +225,15 @@ class PhiPiiLogRedactorBranchesTestCase(TestCase):
         self.assertIn("visible", msg)
         self.assertNotIn("secret", msg)
 
+    def test_secret_pattern_skips_already_redacted_placeholder(self) -> None:
+        """URL/bearer runs before secret; value [REDACTED] must not match partially (stray ])."""
+        url_then_secret = self.redactor._redact_string("token=https://example.com/path")
+        self.assertNotIn("[REDACTED]]", url_then_secret)
+        self.assertIn("token=[REDACTED]", url_then_secret)
+
+        bearer_then_secret = self.redactor._redact_string("Authorization: Bearer sometoken")
+        self.assertNotIn("[REDACTED]]", bearer_then_secret)
+
     def test_find_value_end_when_value_start_is_eof(self) -> None:
         token = "plain="
         self.assertEqual(self.redactor._find_value_end(token, len(token)), len(token))
