@@ -86,11 +86,20 @@ class PhiPiiLogRedactorBranchesTestCase(TestCase):
         self.redactor = PhiPiiLogRedactor()
 
     def test_redact_record_handles_inner_failure(self) -> None:
-        record: dict[str, Any] = {"message": "ok", "extra": {}}
+        sensitive_exception = ValueError("john.doe@example.com token=secret")
+        record: dict[str, Any] = {
+            "message": "ok",
+            "extra": {},
+            "exception": RecordException(type(sensitive_exception), sensitive_exception, None),
+        }
         with patch.object(self.redactor, "_redact_string", side_effect=RuntimeError("boom")):
             self.redactor.redact_record(record)
         self.assertEqual(record["message"], PhiPiiLogRedactor.REDACTION_ERROR)
         self.assertEqual(record["extra"], {"redaction_error": PhiPiiLogRedactor.REDACTION_ERROR})
+        redacted_exception = record["exception"]
+        self.assertIsInstance(redacted_exception, RecordException)
+        self.assertIs(redacted_exception.type, RuntimeError)
+        self.assertEqual(str(redacted_exception.value), PhiPiiLogRedactor.REDACTION_ERROR)
 
     def test_max_redaction_depth_returns_placeholder(self) -> None:
         nested: object = "leaf"
@@ -186,6 +195,31 @@ class PhiPiiLogRedactorBranchesTestCase(TestCase):
         dumped = extra["user"]
         assert isinstance(dumped, dict)
         self.assertEqual(dumped["password"], PhiPiiLogRedactor.REDACTED)
+
+    def test_pydantic_model_in_result_payload_keeps_payload_context(self) -> None:
+        class ResultItem(BaseModel):
+            result_value: str
+            reference_range: str
+
+        record: dict[str, Any] = {
+            "message": "",
+            "extra": {
+                "results": {
+                    "items": [ResultItem(result_value="positive", reference_range="negative")],
+                },
+            },
+        }
+        self.redactor.redact_record(record)
+        extra = record["extra"]
+        assert isinstance(extra, dict)
+        results = extra["results"]
+        assert isinstance(results, dict)
+        items = results["items"]
+        assert isinstance(items, list)
+        first_item = items[0]
+        assert isinstance(first_item, dict)
+        self.assertEqual(first_item["result_value"], PhiPiiLogRedactor.REDACTED)
+        self.assertEqual(first_item["reference_range"], PhiPiiLogRedactor.REDACTED)
 
     def test_model_dump_failure_falls_back_to_string_redaction(self) -> None:
         class BrokenModel(BaseModel):

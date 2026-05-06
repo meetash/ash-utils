@@ -95,6 +95,11 @@ class PhiPiiLogRedactor:
         except Exception:
             record["message"] = self.REDACTION_ERROR
             record["extra"] = {"redaction_error": self.REDACTION_ERROR}
+            record["exception"] = RecordException(
+                type=RuntimeError,
+                value=RuntimeError(self.REDACTION_ERROR),
+                traceback=None,
+            )
 
     def _redact_value(self, value: object, *, key: str, depth: int, in_result_payload: bool = False) -> object:
         if depth > self.REDACTION_DEPTH:
@@ -146,7 +151,12 @@ class PhiPiiLogRedactor:
                 ),
             )
         else:
-            redacted_value = self._redact_object(value=value, key=key, depth=depth)
+            redacted_value = self._redact_object(
+                value=value,
+                key=key,
+                depth=depth,
+                in_result_payload=in_result_payload,
+            )
 
         return redacted_value
 
@@ -168,7 +178,7 @@ class PhiPiiLogRedactor:
             for item in values
         ]
 
-    def _redact_object(self, value: object, *, key: str, depth: int) -> object:
+    def _redact_object(self, value: object, *, key: str, depth: int, in_result_payload: bool) -> object:
         if isinstance(value, Exception):
             return self._redact_string(value=str(object=value))
 
@@ -177,7 +187,12 @@ class PhiPiiLogRedactor:
             return value
 
         try:
-            return self._redact_value(value=model_dump(mode="python"), key=key, depth=depth + 1)
+            return self._redact_value(
+                value=model_dump(mode="python"),
+                key=key,
+                depth=depth + 1,
+                in_result_payload=in_result_payload,
+            )
         except Exception:
             return self._redact_string(value=str(object=value))
 
