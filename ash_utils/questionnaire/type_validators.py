@@ -3,18 +3,20 @@ from datetime import datetime
 
 from pydantic import TypeAdapter, ValidationError
 
-from ash_utils.aoe.exceptions import AoeQuestionConfigurationError
-from ash_utils.aoe.types import AoeQuestionValidationInput
+from ash_utils.questionnaire.exceptions import QuestionConfigurationError
+from ash_utils.questionnaire.types import QuestionValidationInput
+
+MULTI_SELECT_INPUT_SEPARATOR = "|"
 
 
-class AoeAnswerTypeValidator(ABC):
+class AnswerTypeValidator(ABC):
     @abstractmethod
-    def validate(self, question: AoeQuestionValidationInput, answer: str) -> None:
-        """Validate answer; raise ``ValueError`` or ``AoeQuestionConfigurationError`` on failure."""
+    def validate(self, question: QuestionValidationInput, answer: str) -> None:
+        """Validate answer; raise ``ValueError`` or ``QuestionConfigurationError`` on failure."""
 
 
-class NumberAoeAnswerTypeValidator(AoeAnswerTypeValidator):
-    def validate(self, question: AoeQuestionValidationInput, answer: str) -> None:
+class NumberAnswerTypeValidator(AnswerTypeValidator):
+    def validate(self, question: QuestionValidationInput, answer: str) -> None:
         try:
             value = float(answer)
         except ValueError as exc:
@@ -35,8 +37,8 @@ class NumberAoeAnswerTypeValidator(AoeAnswerTypeValidator):
             raise ValueError(msg)
 
 
-class TextAoeAnswerTypeValidator(AoeAnswerTypeValidator):
-    def validate(self, question: AoeQuestionValidationInput, answer: str) -> None:
+class TextAnswerTypeValidator(AnswerTypeValidator):
+    def validate(self, question: QuestionValidationInput, answer: str) -> None:
         rules = question.validation_rules or {}
         min_length = rules.get("min_length")
         max_length = rules.get("max_length")
@@ -48,10 +50,10 @@ class TextAoeAnswerTypeValidator(AoeAnswerTypeValidator):
             raise ValueError(msg)
 
 
-class BooleanAoeAnswerTypeValidator(AoeAnswerTypeValidator):
+class BooleanAnswerTypeValidator(AnswerTypeValidator):
     _BOOL_ADAPTER = TypeAdapter(bool)
 
-    def validate(self, question: AoeQuestionValidationInput, answer: str) -> None:  # noqa: ARG002
+    def validate(self, question: QuestionValidationInput, answer: str) -> None:  # noqa: ARG002
         try:
             self._BOOL_ADAPTER.validate_python(answer)
         except ValidationError as exc:
@@ -59,8 +61,8 @@ class BooleanAoeAnswerTypeValidator(AoeAnswerTypeValidator):
             raise ValueError(msg) from exc
 
 
-class DateAoeAnswerTypeValidator(AoeAnswerTypeValidator):
-    def validate(self, question: AoeQuestionValidationInput, answer: str) -> None:  # noqa: ARG002
+class DateAnswerTypeValidator(AnswerTypeValidator):
+    def validate(self, question: QuestionValidationInput, answer: str) -> None:  # noqa: ARG002
         try:
             datetime.fromisoformat(answer)
         except ValueError as exc:
@@ -68,8 +70,8 @@ class DateAoeAnswerTypeValidator(AoeAnswerTypeValidator):
             raise ValueError(msg) from exc
 
 
-class DatetimeAoeAnswerTypeValidator(AoeAnswerTypeValidator):
-    def validate(self, question: AoeQuestionValidationInput, answer: str) -> None:  # noqa: ARG002
+class DatetimeAnswerTypeValidator(AnswerTypeValidator):
+    def validate(self, question: QuestionValidationInput, answer: str) -> None:  # noqa: ARG002
         try:
             datetime.fromisoformat(answer)
         except ValueError as exc:
@@ -77,12 +79,12 @@ class DatetimeAoeAnswerTypeValidator(AoeAnswerTypeValidator):
             raise ValueError(msg) from exc
 
 
-class SelectAoeAnswerTypeValidator(AoeAnswerTypeValidator):
-    def validate(self, question: AoeQuestionValidationInput, answer: str) -> None:
+class SelectAnswerTypeValidator(AnswerTypeValidator):
+    def validate(self, question: QuestionValidationInput, answer: str) -> None:
         options = question.options
         if not options:
             msg = "options are required for select questions"
-            raise AoeQuestionConfigurationError(question.question_id, msg)
+            raise QuestionConfigurationError(question.question_id, msg)
         key = answer.strip().lower()
         match = next((candidate for candidate in options if candidate.strip().lower() == key), None)
         if match is None:
@@ -90,21 +92,17 @@ class SelectAoeAnswerTypeValidator(AoeAnswerTypeValidator):
             raise ValueError(msg)
 
 
-class MultiSelectAoeAnswerTypeValidator(AoeAnswerTypeValidator):
-    MULTI_SELECT_INPUT_SEPARATOR = "|"
-
-    def validate(self, question: AoeQuestionValidationInput, answer: str) -> None:
+class MultiSelectAnswerTypeValidator(AnswerTypeValidator):
+    def validate(self, question: QuestionValidationInput, answer: str) -> None:
         options = question.options
         if not options:
             msg = "options mapping is required for multi_select questions"
-            raise AoeQuestionConfigurationError(question.question_id, msg)
+            raise QuestionConfigurationError(question.question_id, msg)
         stripped_answer = answer.strip().lower()
         if not stripped_answer:
             msg = "at least one value is required"
             raise ValueError(msg)
-        tokens = tuple(
-            token.strip() for token in stripped_answer.split(self.MULTI_SELECT_INPUT_SEPARATOR) if token.strip()
-        )
+        tokens = tuple(token.strip() for token in stripped_answer.split(MULTI_SELECT_INPUT_SEPARATOR) if token.strip())
         if not tokens:
             msg = "at least one value is required"
             raise ValueError(msg)
