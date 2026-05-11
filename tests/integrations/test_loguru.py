@@ -445,6 +445,22 @@ class PhiPiiLogRedactorBranchesTestCase(TestCase):
         self.assertEqual(extra["mfa_phone_number"], PhiPiiLogRedactor.REDACTED)
         self.assertEqual(extra["phone"], PhiPiiLogRedactor.REDACTED)
 
+    def test_phone_key_non_string_values_redacted(self) -> None:
+        record: dict[str, Any] = {
+            "message": "",
+            "extra": {
+                "phone": 5551234567,
+                "phone_number": {"home": "555-1234"},
+                "mfa_phone_number": ["555-0100"],
+            },
+        }
+        self.redactor.redact_record(record)
+        extra = record["extra"]
+        assert isinstance(extra, dict)
+        self.assertEqual(extra["phone"], PhiPiiLogRedactor.REDACTED)
+        self.assertEqual(extra["phone_number"], PhiPiiLogRedactor.REDACTED)
+        self.assertEqual(extra["mfa_phone_number"], PhiPiiLogRedactor.REDACTED)
+
     def test_non_identity_email_named_extra_passes_through(self) -> None:
         """Email-adjacent keys that are not identity email/login fields stay visible (bools, strings, ids)."""
         record: dict[str, Any] = {
