@@ -301,6 +301,12 @@ class PhiPiiLogRedactorBranchesTestCase(TestCase):
         self.assertNotIn("abc", msg)
         self.assertIn("tail", msg)
 
+    def test_email_keyed_value_redacts_non_email_identifier(self) -> None:
+        msg = self.redactor._redact_string("patient_email=patient-123@example.com, safe_label=visible")
+        self.assertIn(f"patient_email={PhiPiiLogRedactor.REDACTED}", msg)
+        self.assertIn("safe_label=visible", msg)
+        self.assertNotIn("patient-123@example.com", msg)
+
     def test_keyed_value_nested_brackets_push_stack(self) -> None:
         msg = self.redactor._redact_string("password={a:{b:1}}")
         self.assertNotIn("b:1", msg)

@@ -565,6 +565,7 @@ class PhiPiiLogRedactor:
             self._should_redact_key(normalized_key=normalized_key, in_result_payload=False)
             or self._is_test_result_container_key(normalized_key=normalized_key)
             or self._is_specific_test_result_field(normalized_key=normalized_key)
+            or self._is_email_key(normalized_key=normalized_key)
             or self._is_url_key(normalized_key=normalized_key)
             or self._is_phone_key(normalized_key=normalized_key)
         )
