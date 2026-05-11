@@ -464,8 +464,10 @@ class PhiPiiLogRedactor:
         if letters and all(char.isupper() for char in letters):
             value = raw
         else:
-            value = re.sub(pattern=r"(?<!^)(?=[A-Z])", repl="_", string=raw)
-        return re.sub(pattern=r"[^a-z0-9_]+", repl="_", string=value.lower()).strip("_")
+            value = re.sub(pattern=r"[^A-Za-z0-9]+", repl="_", string=raw)
+            value = re.sub(pattern=r"([A-Z]+)([A-Z][a-z])", repl=r"\1_\2", string=value)
+            value = re.sub(pattern=r"([a-z0-9])([A-Z])", repl=r"\1_\2", string=value)
+        return re.sub(pattern=r"_+", repl="_", string=value.lower()).strip("_")
 
     def _is_sensitive_key(self, normalized_key: str) -> bool:
         return self.sensitive_key_pattern.search(string=normalized_key) is not None

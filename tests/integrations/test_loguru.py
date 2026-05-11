@@ -346,16 +346,23 @@ class PhiPiiLogRedactorBranchesTestCase(TestCase):
         self.assertIn("https://[REDACTED]@api.example.com/v1/health", msg)
         self.assertNotIn("user:secret", msg)
 
-    def test_sensitive_key_pattern_named_exceptions_pass_through(self) -> None:
+    def test_mixed_separator_sensitive_keys_redact_and_exceptions_pass_through(self) -> None:
         record: dict[str, Any] = {
             "message": "",
             "extra": {
                 "session_id": "sess-abc",
                 "x_session_id": "hdr-xyz",
+                "X-Session-ID": "hdr-hyphenated",
+                "Session-Id": "sess-hyphenated",
+                "requestHTTPID": "request-http-id",
                 "token_count": 12,
+                "Token-Count": 13,
                 "password_policy": "min-8",
                 "bypass_flag": False,
                 "auth_failed_msg": "bad creds",
+                "Session-Token": "secret-session-token",
+                "Token-Value": "secret-token-value",
+                "X-API-Key": "secret-api-key",
             },
         }
         self.redactor.redact_record(record)
@@ -363,10 +370,17 @@ class PhiPiiLogRedactorBranchesTestCase(TestCase):
         assert isinstance(extra, dict)
         self.assertEqual(extra["session_id"], "sess-abc")
         self.assertEqual(extra["x_session_id"], "hdr-xyz")
+        self.assertEqual(extra["X-Session-ID"], "hdr-hyphenated")
+        self.assertEqual(extra["Session-Id"], "sess-hyphenated")
+        self.assertEqual(extra["requestHTTPID"], "request-http-id")
         self.assertEqual(extra["token_count"], 12)
+        self.assertEqual(extra["Token-Count"], 13)
         self.assertEqual(extra["password_policy"], "min-8")
         self.assertFalse(extra["bypass_flag"])
         self.assertEqual(extra["auth_failed_msg"], "bad creds")
+        self.assertEqual(extra["Session-Token"], PhiPiiLogRedactor.REDACTED)
+        self.assertEqual(extra["Token-Value"], PhiPiiLogRedactor.REDACTED)
+        self.assertEqual(extra["X-API-Key"], PhiPiiLogRedactor.REDACTED)
 
     def test_sensitive_key_segment_exceptions_and_lookalikes_pass_through(self) -> None:
         """Exception segment shapes stay visible; compounds and ALL_CAPS keys must not trip substring rules."""
