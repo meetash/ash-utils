@@ -365,7 +365,7 @@ class PhiPiiLogRedactorBranchesTestCase(TestCase):
         self.assertEqual(extra["x_session_id"], "hdr-xyz")
         self.assertEqual(extra["token_count"], 12)
         self.assertEqual(extra["password_policy"], "min-8")
-        self.assertEqual(extra["bypass_flag"], False)
+        self.assertFalse(extra["bypass_flag"])
         self.assertEqual(extra["auth_failed_msg"], "bad creds")
 
     def test_sensitive_key_segment_exceptions_and_lookalikes_pass_through(self) -> None:
@@ -393,7 +393,7 @@ class PhiPiiLogRedactorBranchesTestCase(TestCase):
         self.assertEqual(extra["x_session_id"], "hdr-core")
         self.assertEqual(extra["token_count"], 7)
         self.assertEqual(extra["password_policy"], "min-12")
-        self.assertIs(extra["bypass_flag"], True)
+        self.assertTrue(extra["bypass_flag"])
         self.assertEqual(extra["auth_failed_msg"], "invalid grant")
         self.assertEqual(extra["SESSION_ID"], "env-style-session-id")
         self.assertEqual(extra["REQUEST_SESSION_ID"], "all-caps-normalizes")
@@ -426,8 +426,8 @@ class PhiPiiLogRedactorBranchesTestCase(TestCase):
         self.redactor.redact_record(record)
         extra = record["extra"]
         assert isinstance(extra, dict)
-        self.assertIs(extra["email_verified"], True)
-        self.assertIs(extra["has_email"], False)
+        self.assertTrue(extra["email_verified"])
+        self.assertFalse(extra["has_email"])
         self.assertEqual(extra["email_verified_status"], "verified")
         self.assertEqual(extra["email_template"], "welcome_001")
 
