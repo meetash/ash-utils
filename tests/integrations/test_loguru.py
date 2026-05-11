@@ -305,6 +305,11 @@ class PhiPiiLogRedactorBranchesTestCase(TestCase):
         msg = self.redactor._redact_string('password="unclosed')
         self.assertNotIn("unclosed", msg)
 
+    def test_url_keyed_quoted_value_unclosed_redacts_full_inner_value(self) -> None:
+        msg = self.redactor._redact_string("url='https://user:secretd@api.example.com/path")
+        self.assertIn("url='https://[REDACTED]@api.example.com/path", msg)
+        self.assertNotIn("secretd", msg)
+
     def test_redact_exception_ignores_non_record_exception_wrapper(self) -> None:
         record: dict[str, Any] = {"exception": SimpleNamespace(value=ValueError("x"))}
         self.redactor._redact_exception(record)

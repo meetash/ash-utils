@@ -278,9 +278,12 @@ class PhiPiiLogRedactor:
         first = body[0]
         if first in "'\"":
             close = self._find_quoted_value_end(value=body, value_start=0)
-            inner = body[1 : close - 1]
+            has_closing_quote = close > 1 and body[close - 1] == first
+            inner_end = close - 1 if has_closing_quote else close
+            inner = body[1:inner_end]
             redacted_inner = self._redact_string(value=inner)
-            return f"{leading}{first}{redacted_inner}{body[close - 1]}{trailing}"
+            closing_quote = body[close - 1] if has_closing_quote else ""
+            return f"{leading}{first}{redacted_inner}{closing_quote}{trailing}"
         if first in "{[":
             return self.REDACTED
         return f"{leading}{self._redact_string(value=body)}{trailing}"
