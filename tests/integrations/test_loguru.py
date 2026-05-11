@@ -289,7 +289,11 @@ class PhiPiiLogRedactorBranchesTestCase(TestCase):
 
     def test_find_quoted_value_end_unclosed_returns_length(self) -> None:
         raw = '"unclosed'
-        self.assertEqual(PhiPiiLogRedactor._find_quoted_value_end(raw, 0), len(raw))
+        self.assertEqual(self.redactor._find_quoted_value_end(raw, 0), len(raw))
+
+    def test_find_quoted_value_end_treats_even_backslashes_as_closing_quote(self) -> None:
+        raw = r'"value\\", token=secret'
+        self.assertEqual(self.redactor._find_quoted_value_end(raw, 0), raw.index(","))
 
     def test_keyed_values_bracket_quote_and_scalar(self) -> None:
         msg = self.redactor._redact_string('password={nested: {inner: 1}} token="x" api_key=abc, tail')
@@ -300,6 +304,10 @@ class PhiPiiLogRedactorBranchesTestCase(TestCase):
     def test_keyed_value_nested_brackets_push_stack(self) -> None:
         msg = self.redactor._redact_string("password={a:{b:1}}")
         self.assertNotIn("b:1", msg)
+
+    def test_balanced_value_end_does_not_overconsume_after_double_escaped_quote(self) -> None:
+        raw = r'{a:"value\\", b:1} token=secret'
+        self.assertEqual(self.redactor._find_balanced_value_end(raw, 0), raw.index("}") + 1)
 
     def test_keyed_quoted_value_unclosed_consumes_to_eof(self) -> None:
         msg = self.redactor._redact_string('password="unclosed')

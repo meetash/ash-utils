@@ -412,15 +412,23 @@ class PhiPiiLogRedactor:
             cursor += 1
         return cursor
 
-    @staticmethod
-    def _find_quoted_value_end(value: str, value_start: int) -> int:
+    def _find_quoted_value_end(self, value: str, value_start: int) -> int:
         quote = value[value_start]
         cursor = value_start + 1
         while cursor < len(value):
-            if value[cursor] == quote and value[cursor - 1] != "\\":
+            if value[cursor] == quote and not self._is_escaped(value=value, cursor=cursor):
                 return cursor + 1
             cursor += 1
         return len(value)
+
+    @staticmethod
+    def _is_escaped(value: str, cursor: int) -> bool:
+        backslash_count = 0
+        index = cursor - 1
+        while index >= 0 and value[index] == "\\":
+            backslash_count += 1
+            index -= 1
+        return backslash_count % 2 == 1
 
     @staticmethod
     def _find_scalar_value_end(value: str, value_start: int) -> int:
