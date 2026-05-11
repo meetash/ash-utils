@@ -17,14 +17,14 @@ class PhiPiiLogRedactor:
         pattern=r"\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b",
         flags=re.IGNORECASE,
     )
-    url_pattern: ClassVar[re.Pattern[str]] = re.compile(
-        pattern=r"https?://[^\s'\"<>)\]}]+",
+    url_userinfo_pattern: ClassVar[re.Pattern[str]] = re.compile(
+        pattern=r"(https?://)([^/?#]+)@([^/?#]+)",
         flags=re.IGNORECASE,
     )
     secret_value_pattern: ClassVar[re.Pattern[str]] = re.compile(
         pattern=(
-            r"\b(auth|authorization|api[_-]?key|token|secret|password|passwd|credential|cookie)"
-            r"\b\s*[:=]\s*(bearer\s+)?(?!" + re.escape(REDACTED) + r")[^\s,;}\]]+"
+            r"\b(auth|authorization|api[_-]?key|token|secret|password|passwd|credential|cookie|signature|"
+            r"signedheaders)\b\s*[:=]\s*(bearer\s+)?(?!" + re.escape(REDACTED) + r")[^\s,;}\]]+"
         ),
         flags=re.IGNORECASE,
     )
@@ -35,11 +35,11 @@ class PhiPiiLogRedactor:
     test_result_pattern: ClassVar[re.Pattern[str]] = re.compile(
         pattern=(
             r"^(?P<container>(?:desired|expected|target|lab|kit|order|panel|specimen)_(?:result|results)|results?|"
-            r"result_items?|result_entries?|result_lines?|result_records?|result_payload|result_data)$"
-            r"|^(?P<payload>result_code_ids?|result_codes?|result_values?|result_value|observed_values?|"
-            r"numeric_results?|qualitative_results?|interpretations?|reference_ranges?|reference_range|normal_range|"
-            r"abnormal_flags?|units|collection_dates?|collection_date|received_dates?|reported_dates?|date_reported|"
-            r"lab_results?|panel_results?|specimens?|panels?|assays?|analytes?|loinc|order_results?|kit_results?|test_names?)$"
+            r"result_(?:(?:item|line|record)s?|entry|entries|payload|data))$"
+            r"|^(?P<payload>result_code(?:_id)?s?|result_values?|observed_values?|"
+            r"(?:numeric|qualitative|lab|panel|order|kit)_results?|interpretations?|(?:reference|normal)_ranges?|"
+            r"abnormal_flags?|units|(?:collection|received|reported)_dates?|"
+            r"collection_date|date_reported|specimens?|panels?|assays?|analytes?|loinc|test_names?)$"
         ),
         flags=re.IGNORECASE,
     )
@@ -56,14 +56,37 @@ class PhiPiiLogRedactor:
         ),
         flags=re.IGNORECASE,
     )
+    # Underscore-delimited segments only (normalized keys are snake_case). Substrings like `pass`
+    # inside `bypass` must not match; exceptions such as session_id use negative lookahead on segments.
     sensitive_key_pattern: ClassVar[re.Pattern[str]] = re.compile(
         pattern=(
-            r"auth|authorization|api_?key|bearer|cookies?|credentials?|pass(?:word|wd)?|private_key|"
-            r"secrets?|sessions?|tokens?"
+            r"(?:"
+            r"(?:^|_)authorization(?:$|_)"
+            r"|(?:^|_)api_?key(?:$|_)"
+            r"|(?:^|_)bearer(?:$|_)"
+            r"|(?:^|_)cookies?(?:$|_)"
+            r"|(?:^|_)credentials?(?:$|_)"
+            r"|(?:^|_)private_key(?:$|_)"
+            r"|(?:^|_)secrets?(?:$|_)"
+            r"|(?:^|_)pass(?:word|wd)?(?!_policy(?:$|_))(?:$|_)"
+            r"|(?:^|_)sessions?(?!_id(?:$|_))(?:$|_)"
+            r"|(?:^|_)tokens?(?!_count(?:$|_))(?:$|_)"
+            r"|(?:^|_)auth(?!_failed)(?:$|_)"
+            r")"
         ),
         flags=re.IGNORECASE,
     )
-    email_key_pattern: ClassVar[re.Pattern[str]] = re.compile(pattern=r"email", flags=re.IGNORECASE)
+    email_key_pattern: ClassVar[re.Pattern[str]] = re.compile(
+        pattern=(
+            r"^(?:patient|client|shipping|target|customer|partner|impersonated|contact)?"
+            r"(?:_?user)?_?(?:e?mails?|logins?)(?:_?address)?$"
+        ),
+        flags=re.IGNORECASE,
+    )
+    phone_key_pattern: ClassVar[re.Pattern[str]] = re.compile(
+        pattern=r"^(?:mfa_)?phone(?:_number)?$",
+        flags=re.IGNORECASE,
+    )
     url_key_pattern: ClassVar[re.Pattern[str]] = re.compile(
         pattern=r"^(?:url|urls|.*_url|.*_urls)$",
         flags=re.IGNORECASE,
@@ -230,7 +253,7 @@ class PhiPiiLogRedactor:
             repl=lambda match: self._redact_email(email=match.group(0)),
             string=value,
         )
-        redacted = self.url_pattern.sub(repl=self.REDACTED, string=redacted)
+        redacted = self._redact_url_userinfo_in_string(value=redacted)
         redacted = self.bearer_token_pattern.sub(repl=f"Bearer {self.REDACTED}", string=redacted)
         redacted = self.secret_value_pattern.sub(
             repl=lambda match: f"{match.group(1)}={self.REDACTED}",
@@ -238,14 +261,41 @@ class PhiPiiLogRedactor:
         )
         return self._redact_keyed_values_in_string(value=self._redact_test_result_objects(value=redacted))
 
+    def _redact_url_userinfo_in_string(self, value: str) -> str:
+        return self.url_userinfo_pattern.sub(
+            repl=lambda match: f"{match.group(1)}{self.REDACTED}@{match.group(3)}",
+            string=value,
+        )
+
+    def _redact_url_keyed_value_fragment(self, value: str, value_start: int, value_end: int) -> str:
+        raw = value[value_start:value_end]
+        stripped = raw.strip()
+        if not stripped:
+            return self.REDACTED
+        leading = raw[: len(raw) - len(raw.lstrip())]
+        trailing = raw[len(raw.rstrip()) :]
+        body = stripped
+        first = body[0]
+        if first in "'\"":
+            close = self._find_quoted_value_end(value=body, value_start=0)
+            inner = body[1 : close - 1]
+            redacted_inner = self._redact_string(value=inner)
+            return f"{leading}{first}{redacted_inner}{body[close - 1]}{trailing}"
+        if first in "{[":
+            return self.REDACTED
+        return f"{leading}{self._redact_string(value=body)}{trailing}"
+
     def _get_direct_redacted_value(self, normalized_key: str, value: object) -> tuple[bool, object]:
         if self._is_email_key(normalized_key=normalized_key):
-            if isinstance(value, str):
-                if self._string_is_scalar_email(value=value):
-                    return True, self._redact_email(email=value)
-                return True, self.REDACTED
-            return False, value
+            if not isinstance(value, str):
+                return False, value
+            redacted = self._redact_email(email=value) if self._string_is_scalar_email(value=value) else self.REDACTED
+            return True, redacted
+        if self._is_phone_key(normalized_key=normalized_key):
+            return (True, self.REDACTED) if isinstance(value, str) else (False, value)
         if self._is_url_key(normalized_key=normalized_key):
+            if isinstance(value, str) and value:
+                return True, self._redact_string(value=value)
             return True, self.REDACTED if value else value
         return False, value
 
@@ -315,7 +365,16 @@ class PhiPiiLogRedactor:
 
             value_end = self._find_value_end(value=value, value_start=match.end())
             redacted_parts.append(value[output_cursor : match.end()])
-            redacted_parts.append(self.REDACTED)
+            if self._is_url_key(normalized_key=key):
+                redacted_parts.append(
+                    self._redact_url_keyed_value_fragment(
+                        value=value,
+                        value_start=match.end(),
+                        value_end=value_end,
+                    ),
+                )
+            else:
+                redacted_parts.append(self.REDACTED)
             output_cursor = value_end
             search_cursor = value_end
 
@@ -412,7 +471,10 @@ class PhiPiiLogRedactor:
         return self.sensitive_key_pattern.search(string=normalized_key) is not None
 
     def _is_email_key(self, normalized_key: str) -> bool:
-        return self.email_key_pattern.search(string=normalized_key) is not None
+        return self.email_key_pattern.fullmatch(string=normalized_key) is not None
+
+    def _is_phone_key(self, normalized_key: str) -> bool:
+        return self.phone_key_pattern.fullmatch(string=normalized_key) is not None
 
     def _is_url_key(self, normalized_key: str) -> bool:
         return self.url_key_pattern.fullmatch(string=normalized_key) is not None
@@ -449,6 +511,7 @@ class PhiPiiLogRedactor:
             or self._is_test_result_container_key(normalized_key=normalized_key)
             or self._is_specific_test_result_field(normalized_key=normalized_key)
             or self._is_url_key(normalized_key=normalized_key)
+            or self._is_phone_key(normalized_key=normalized_key)
         )
 
     def _looks_like_result_payload(self, keys: set[str]) -> bool:

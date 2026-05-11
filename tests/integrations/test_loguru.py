@@ -32,6 +32,8 @@ class PhiPiiLogRedactorTestCase(TestCase):
             phone="555-123-4567",
         ).info(
             "Email john.doe@example.com url https://storage.example.com/result.pdf token=secret-token "
+            "upstream https://svc:topsecret@internal.example.net/api "
+            "Authorization: Bearer opaque-bearer-token "
             "LabResultRow(id=1, value='positive')"
         )
 
@@ -40,15 +42,22 @@ class PhiPiiLogRedactorTestCase(TestCase):
         self.assertIn("joh...@example.com", output)
         self.assertIn("jan...@example.com", output)
         self.assertIn("KIT123", output)
-        self.assertIn("555-123-4567", output)
+        self.assertIn("https://storage.example.com/result.pdf", output)
+        self.assertIn("https://example.com/results/document.pdf", output)
         self.assertIn("reference_range", output)
 
         self.assertNotIn("john.doe@example.com", output)
         self.assertNotIn("jane.doe@example.com", output)
-        self.assertNotIn("https://storage.example.com", output)
-        self.assertNotIn("https://example.com", output)
+        self.assertNotIn("555-123-4567", output)
         self.assertNotIn("secret-token", output)
         self.assertNotIn("secret-api-key", output)
+        self.assertNotIn("topsecret", output)
+        self.assertNotIn("svc:", output)
+        self.assertNotIn("opaque-bearer-token", output)
+        # Bearer is normalized by secret pass after bearer replacement; token must not leak.
+        self.assertIn("Authorization=[REDACTED]", output)
+        self.assertIn("https://[REDACTED]@internal.example.net/api", output)
+        self.assertNotIn("signature=secret", output)
         self.assertNotIn("100 Main St", output)
         self.assertNotIn("positive", output)
         self.assertNotIn("LabResultRow", output)
@@ -68,7 +77,7 @@ class PhiPiiLogRedactorTestCase(TestCase):
         self.assertIn("Failed while handling kit KIT123", output)
         self.assertIn("joh...@example.com", output)
         self.assertNotIn("john.doe@example.com", output)
-        self.assertNotIn("https://example.com", output)
+        self.assertIn("https://example.com/result.pdf", output)
         self.assertNotIn("positive", output)
 
     def _raise_sensitive_error(self) -> None:
@@ -332,19 +341,186 @@ class PhiPiiLogRedactorBranchesTestCase(TestCase):
             "joh...@example.com",
         )
 
-    def test_email_substring_key_non_email_string_is_full_redacted_not_corrupted(self) -> None:
-        """Keys matching email_key_pattern must not run _redact_email on non-email values."""
+    def test_url_userinfo_redacted_host_and_path_preserved(self) -> None:
+        msg = self.redactor._redact_string("GET https://user:secret@api.example.com/v1/health failed")
+        self.assertIn("https://[REDACTED]@api.example.com/v1/health", msg)
+        self.assertNotIn("user:secret", msg)
+
+    def test_sensitive_key_pattern_named_exceptions_pass_through(self) -> None:
         record: dict[str, Any] = {
             "message": "",
             "extra": {
-                "email_verified": "true",
+                "session_id": "sess-abc",
+                "x_session_id": "hdr-xyz",
+                "token_count": 12,
+                "password_policy": "min-8",
+                "bypass_flag": False,
+                "auth_failed_msg": "bad creds",
+            },
+        }
+        self.redactor.redact_record(record)
+        extra = record["extra"]
+        assert isinstance(extra, dict)
+        self.assertEqual(extra["session_id"], "sess-abc")
+        self.assertEqual(extra["x_session_id"], "hdr-xyz")
+        self.assertEqual(extra["token_count"], 12)
+        self.assertEqual(extra["password_policy"], "min-8")
+        self.assertEqual(extra["bypass_flag"], False)
+        self.assertEqual(extra["auth_failed_msg"], "bad creds")
+
+    def test_sensitive_key_segment_exceptions_and_lookalikes_pass_through(self) -> None:
+        """Exception segment shapes stay visible; compounds and ALL_CAPS keys must not trip substring rules."""
+        record: dict[str, Any] = {
+            "message": "",
+            "extra": {
+                "session_id": "sess-core",
+                "x_session_id": "hdr-core",
+                "token_count": 7,
+                "password_policy": "min-12",
+                "bypass_flag": True,
+                "auth_failed_msg": "invalid grant",
+                "SESSION_ID": "env-style-session-id",
+                "REQUEST_SESSION_ID": "all-caps-normalizes",
+                "upstream_session_id": "trace-99",
+                "oauth_token_count": 2,
+                "legacy_auth_failed_code": 401,
+            },
+        }
+        self.redactor.redact_record(record)
+        extra = record["extra"]
+        assert isinstance(extra, dict)
+        self.assertEqual(extra["session_id"], "sess-core")
+        self.assertEqual(extra["x_session_id"], "hdr-core")
+        self.assertEqual(extra["token_count"], 7)
+        self.assertEqual(extra["password_policy"], "min-12")
+        self.assertIs(extra["bypass_flag"], True)
+        self.assertEqual(extra["auth_failed_msg"], "invalid grant")
+        self.assertEqual(extra["SESSION_ID"], "env-style-session-id")
+        self.assertEqual(extra["REQUEST_SESSION_ID"], "all-caps-normalizes")
+        self.assertEqual(extra["upstream_session_id"], "trace-99")
+        self.assertEqual(extra["oauth_token_count"], 2)
+        self.assertEqual(extra["legacy_auth_failed_code"], 401)
+
+    def test_mfa_phone_key_redacted(self) -> None:
+        record: dict[str, Any] = {
+            "message": "",
+            "extra": {"mfa_phone_number": "555-0100", "phone": "555-0200"},
+        }
+        self.redactor.redact_record(record)
+        extra = record["extra"]
+        assert isinstance(extra, dict)
+        self.assertEqual(extra["mfa_phone_number"], PhiPiiLogRedactor.REDACTED)
+        self.assertEqual(extra["phone"], PhiPiiLogRedactor.REDACTED)
+
+    def test_non_identity_email_named_extra_passes_through(self) -> None:
+        """Email-adjacent keys that are not identity email/login fields stay visible (bools, strings, ids)."""
+        record: dict[str, Any] = {
+            "message": "",
+            "extra": {
+                "email_verified": True,
+                "has_email": False,
+                "email_verified_status": "verified",
                 "email_template": "welcome_001",
             },
         }
         self.redactor.redact_record(record)
         extra = record["extra"]
         assert isinstance(extra, dict)
-        self.assertEqual(extra["email_verified"], PhiPiiLogRedactor.REDACTED)
-        self.assertEqual(extra["email_template"], PhiPiiLogRedactor.REDACTED)
-        self.assertNotIn("@true", str(extra))
-        self.assertNotIn("welcome_001", str(extra))
+        self.assertIs(extra["email_verified"], True)
+        self.assertIs(extra["has_email"], False)
+        self.assertEqual(extra["email_verified_status"], "verified")
+        self.assertEqual(extra["email_template"], "welcome_001")
+
+    def test_bearer_token_redacted_in_string(self) -> None:
+        msg = self.redactor._redact_string("Authorization: Bearer aa.bb-cc/dd+ee suffix")
+        self.assertNotIn("aa.bb-cc", msg)
+        self.assertIn("suffix", msg)
+        self.assertIn("Authorization=[REDACTED]", msg)
+
+    def test_bearer_pattern_consumes_token_before_secret_pass(self) -> None:
+        """Bearer sub runs first; odd '=' padding on tokens can leave a trailing fragment."""
+        after_bearer = self.redactor.bearer_token_pattern.sub(
+            repl=f"Bearer {PhiPiiLogRedactor.REDACTED}",
+            string="Authorization: Bearer aa.bb-cc/dd+ee=_",
+        )
+        self.assertEqual(after_bearer, f"Authorization: Bearer {PhiPiiLogRedactor.REDACTED}_")
+
+    def test_top_level_address_key_pattern_variants_redacted(self) -> None:
+        record: dict[str, Any] = {
+            "message": "",
+            "extra": {
+                "address": "1 Secret Rd",
+                "address_line_1": "2 Secret Rd",
+                "line_1": "3 Secret Rd",
+                "line2": "4 Secret Rd",
+                "pcp_address_1": "5 Secret Rd",
+                "street_address": "6 Secret Rd",
+                "billing_address2": "7 Secret Rd",
+            },
+        }
+        self.redactor.redact_record(record)
+        extra = record["extra"]
+        assert isinstance(extra, dict)
+        for key in (
+            "address",
+            "address_line_1",
+            "line_1",
+            "line2",
+            "pcp_address_1",
+            "street_address",
+            "billing_address2",
+        ):
+            self.assertEqual(extra[key], PhiPiiLogRedactor.REDACTED, msg=key)
+
+    def test_nested_pcp_container_redacts_address_child_keys(self) -> None:
+        record: dict[str, Any] = {
+            "message": "",
+            "extra": {"pcp": {"street": "Hidden St", "city": "Chicago"}},
+        }
+        self.redactor.redact_record(record)
+        extra = record["extra"]
+        assert isinstance(extra, dict)
+        payload = extra["pcp"]
+        assert isinstance(payload, dict)
+        self.assertEqual(payload["street"], PhiPiiLogRedactor.REDACTED)
+        self.assertEqual(payload["city"], "Chicago")
+
+    def test_alternate_lab_and_order_result_keys_redacted_in_payload(self) -> None:
+        record: dict[str, Any] = {
+            "message": "",
+            "extra": {
+                "lab_results": {
+                    "loinc": "1234-5",
+                    "units": "mg/dL",
+                    "interpretation": "abnormal",
+                },
+                "order_result": {
+                    "collection_date": "2024-01-01",
+                    "reported_date": "2024-01-02",
+                    "assays": ["X"],
+                },
+            },
+        }
+        self.redactor.redact_record(record)
+        extra = record["extra"]
+        assert isinstance(extra, dict)
+        lab = extra["lab_results"]
+        assert isinstance(lab, dict)
+        self.assertEqual(lab["loinc"], PhiPiiLogRedactor.REDACTED)
+        self.assertEqual(lab["units"], PhiPiiLogRedactor.REDACTED)
+        self.assertEqual(lab["interpretation"], PhiPiiLogRedactor.REDACTED)
+        order = extra["order_result"]
+        assert isinstance(order, dict)
+        self.assertEqual(order["collection_date"], PhiPiiLogRedactor.REDACTED)
+        self.assertEqual(order["reported_date"], PhiPiiLogRedactor.REDACTED)
+        self.assertEqual(order["assays"], PhiPiiLogRedactor.REDACTED)
+
+    def test_message_keyed_secret_and_url_redacted(self) -> None:
+        """Exercises keyed_value_pattern on free-text alongside secret/bearer ordering."""
+        msg = self.redactor._redact_string(
+            'ok api_key=nope url="https://keep.example/path" trailing',
+        )
+        self.assertIn("trailing", msg)
+        self.assertIn("ok", msg)
+        self.assertNotIn("nope", msg)
+        self.assertIn("keep.example", msg)
