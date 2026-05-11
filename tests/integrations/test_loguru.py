@@ -130,6 +130,22 @@ class PhiPiiLogRedactorBranchesTestCase(TestCase):
         self.assertEqual(self.redactor._normalize_key("API_KEY"), "api_key")
         self.assertEqual(self.redactor._normalize_key("ACCESS_TOKEN"), "access_token")
 
+    def test_normalize_key_oauth_prefix_stays_single_segment(self) -> None:
+        self.assertEqual(self.redactor._normalize_key("OAuthProvider"), "oauth_provider")
+        self.assertEqual(self.redactor._normalize_key("OAuthScope"), "oauth_scope")
+
+    def test_oauth_prefixed_extra_keys_pass_through_like_snake_case(self) -> None:
+        record: dict[str, Any] = {
+            "message": "",
+            "extra": {"OAuthProvider": "google", "OAuthScope": "profile", "oauth_provider": "github"},
+        }
+        self.redactor.redact_record(record)
+        extra = record["extra"]
+        assert isinstance(extra, dict)
+        self.assertEqual(extra["OAuthProvider"], "google")
+        self.assertEqual(extra["OAuthScope"], "profile")
+        self.assertEqual(extra["oauth_provider"], "github")
+
     def test_all_caps_extra_keys_redacted_like_mixed_case(self) -> None:
         record: dict[str, Any] = {
             "message": "",
@@ -294,6 +310,10 @@ class PhiPiiLogRedactorBranchesTestCase(TestCase):
         )
         self.assertEqual(out, PhiPiiLogRedactor.REDACTED)
         self.assertEqual(out.count(PhiPiiLogRedactor.REDACTED), 1)
+
+    def test_redact_balanced_calls_ignores_parentheses_inside_quotes(self) -> None:
+        msg = self.redactor._redact_string('LabResult(note="see )", value="positive") tail')
+        self.assertEqual(msg, f"{PhiPiiLogRedactor.REDACTED} tail")
 
     def test_find_balanced_call_end_unbalanced_returns_length(self) -> None:
         end = PhiPiiLogRedactor._find_balanced_call_end("(abc", 0)

@@ -12,6 +12,7 @@ class PhiPiiLogRedactor:
     REDACTION_ERROR = "[REDACTION_ERROR]"
     REDACTION_DEPTH = 8
     EMAIL_LOCAL_PREFIX_VISIBLE_LEN = 3
+    ACRONYM_PREFIX_MIN_LENGTH = 2
 
     email_pattern: ClassVar[re.Pattern[str]] = re.compile(
         pattern=r"\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b",
@@ -362,6 +363,9 @@ class PhiPiiLogRedactor:
         cursor = open_paren_index
         while cursor < len(value):
             char = value[cursor]
+            if char in "'\"":
+                cursor = PhiPiiLogRedactor._find_quoted_value_end(value=value, value_start=cursor)
+                continue
             if char == "(":
                 depth += 1
             elif char == ")":
@@ -427,11 +431,12 @@ class PhiPiiLogRedactor:
             cursor += 1
         return cursor
 
-    def _find_quoted_value_end(self, value: str, value_start: int) -> int:
+    @staticmethod
+    def _find_quoted_value_end(value: str, value_start: int) -> int:
         quote = value[value_start]
         cursor = value_start + 1
         while cursor < len(value):
-            if value[cursor] == quote and not self._is_escaped(value=value, cursor=cursor):
+            if value[cursor] == quote and not PhiPiiLogRedactor._is_escaped(value=value, cursor=cursor):
                 return cursor + 1
             cursor += 1
         return len(value)
@@ -531,11 +536,23 @@ class PhiPiiLogRedactor:
 
         previous = raw[index - 1]
         next_char = raw[index + 1] if index + 1 < len(raw) else ""
-        return self._is_mixed_case_boundary(previous=previous, next_char=next_char)
+        return self._is_mixed_case_boundary(
+            previous=previous,
+            next_char=next_char,
+            has_acronym_prefix=self._has_acronym_prefix(raw=raw, index=index),
+        )
 
     @staticmethod
-    def _is_mixed_case_boundary(previous: str, next_char: str) -> bool:
-        return previous.islower() or previous.isdigit() or (previous.isupper() and next_char.islower())
+    def _is_mixed_case_boundary(previous: str, next_char: str, *, has_acronym_prefix: bool) -> bool:
+        return (
+            previous.islower()
+            or previous.isdigit()
+            or (previous.isupper() and next_char.islower() and has_acronym_prefix)
+        )
+
+    @staticmethod
+    def _has_acronym_prefix(raw: str, index: int) -> bool:
+        return index >= PhiPiiLogRedactor.ACRONYM_PREFIX_MIN_LENGTH and raw[index - 2].isupper()
 
     def _is_sensitive_key(self, normalized_key: str) -> bool:
         return self.sensitive_key_pattern.search(string=normalized_key) is not None
