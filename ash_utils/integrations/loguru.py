@@ -455,27 +455,61 @@ class PhiPiiLogRedactor:
         except (TypeError, ValueError):
             return RuntimeError(redacted_message)
 
-    @staticmethod
-    def _normalize_key(key: object) -> str:
+    def _normalize_key(self, key: object) -> str:
         raw = str(object=key)
+        split_mixed_case = self._should_split_mixed_case(raw=raw)
+        normalized: list[str] = []
+        for index, char in enumerate(raw):
+            separator = self._separator_for_char(char=char, normalized=normalized)
+            if separator is not None:
+                normalized.extend(separator)
+                continue
+
+            if self._needs_mixed_case_separator(
+                raw=raw,
+                index=index,
+                normalized=normalized,
+                split_mixed_case=split_mixed_case,
+            ):
+                normalized.append("_")
+            normalized.append(char.lower())
+        return "".join(normalized).strip("_")
+
+    @staticmethod
+    def _should_split_mixed_case(raw: str) -> bool:
         letters = [char for char in raw if char.isalpha()]
         # Constant-style keys (e.g. env vars) must not be split into p_a_s_s_w_o_r_d or a_p_i__k_e_y,
         # or sensitive substring checks miss them after normalization.
-        split_mixed_case = not letters or not all(char.isupper() for char in letters)
-        normalized: list[str] = []
-        for index, char in enumerate(raw):
-            if not char.isascii() or not char.isalnum():
-                if normalized and normalized[-1] != "_":
-                    normalized.append("_")
-                continue
+        return not letters or not all(char.isupper() for char in letters)
 
-            if split_mixed_case and char.isupper() and normalized and normalized[-1] != "_":
-                previous = raw[index - 1]
-                next_char = raw[index + 1] if index + 1 < len(raw) else ""
-                if previous.islower() or previous.isdigit() or (previous.isupper() and next_char.islower()):
-                    normalized.append("_")
-            normalized.append(char.lower())
-        return "".join(normalized).strip("_")
+    @staticmethod
+    def _separator_for_char(char: str, normalized: list[str]) -> str | None:
+        if char.isascii() and char.isalnum():
+            return None
+        if normalized and normalized[-1] != "_":
+            return "_"
+        return ""
+
+    def _needs_mixed_case_separator(
+        self,
+        *,
+        raw: str,
+        index: int,
+        normalized: list[str],
+        split_mixed_case: bool,
+    ) -> bool:
+        if not split_mixed_case or not normalized or normalized[-1] == "_":
+            return False
+        if not raw[index].isupper():
+            return False
+
+        previous = raw[index - 1]
+        next_char = raw[index + 1] if index + 1 < len(raw) else ""
+        return self._is_mixed_case_boundary(previous=previous, next_char=next_char)
+
+    @staticmethod
+    def _is_mixed_case_boundary(previous: str, next_char: str) -> bool:
+        return previous.islower() or previous.isdigit() or (previous.isupper() and next_char.islower())
 
     def _is_sensitive_key(self, normalized_key: str) -> bool:
         return self.sensitive_key_pattern.search(string=normalized_key) is not None

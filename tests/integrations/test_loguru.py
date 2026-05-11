@@ -127,9 +127,9 @@ class PhiPiiLogRedactorBranchesTestCase(TestCase):
         self.assertEqual(record["extra"], {"count": 42})
 
     def test_normalize_key_all_caps_preserves_sensitive_tokens(self) -> None:
-        self.assertEqual(PhiPiiLogRedactor._normalize_key("PASSWORD"), "password")
-        self.assertEqual(PhiPiiLogRedactor._normalize_key("API_KEY"), "api_key")
-        self.assertEqual(PhiPiiLogRedactor._normalize_key("ACCESS_TOKEN"), "access_token")
+        self.assertEqual(self.redactor._normalize_key("PASSWORD"), "password")
+        self.assertEqual(self.redactor._normalize_key("API_KEY"), "api_key")
+        self.assertEqual(self.redactor._normalize_key("ACCESS_TOKEN"), "access_token")
 
     def test_all_caps_extra_keys_redacted_like_mixed_case(self) -> None:
         record: dict[str, Any] = {
