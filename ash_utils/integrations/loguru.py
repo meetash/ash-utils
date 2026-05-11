@@ -289,26 +289,23 @@ class PhiPiiLogRedactor:
         return f"{leading}{self._redact_string(value=body)}{trailing}"
 
     def _get_direct_redacted_value(self, normalized_key: str, value: object) -> tuple[bool, object]:
-        should_return_direct_value = False
-        direct_value = value
-
         if self._is_email_key(normalized_key=normalized_key):
             if isinstance(value, str):
-                should_return_direct_value = True
-                direct_value = (
-                    self._redact_email(email=value) if self._string_is_scalar_email(value=value) else self.REDACTED
+                return (
+                    True,
+                    self._redact_email(email=value) if self._string_is_scalar_email(value=value) else self.REDACTED,
                 )
-        elif self._is_phone_key(normalized_key=normalized_key):
-            should_return_direct_value = True
-            direct_value = self.REDACTED if isinstance(value, str) or value else value
-        elif self._is_url_key(normalized_key=normalized_key):
-            should_return_direct_value = True
-            if isinstance(value, str) and value:
-                direct_value = self._redact_string(value=value)
-            else:
-                direct_value = self.REDACTED if value else value
+            return False, value
 
-        return should_return_direct_value, direct_value
+        if self._is_phone_key(normalized_key=normalized_key):
+            return True, self.REDACTED if isinstance(value, str) or value else value
+
+        if self._is_url_key(normalized_key=normalized_key):
+            if isinstance(value, str) and value:
+                return True, self._redact_string(value=value)
+            return True, self.REDACTED if value else value
+
+        return False, value
 
     def _string_is_scalar_email(self, *, value: str) -> bool:
         stripped = value.strip()
