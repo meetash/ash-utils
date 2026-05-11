@@ -23,8 +23,10 @@ class PhiPiiLogRedactor:
     )
     secret_value_pattern: ClassVar[re.Pattern[str]] = re.compile(
         pattern=(
-            r"\b(auth|authorization|api[_-]?key|token|secret|password|passwd|credential|cookie|signature|"
-            r"signedheaders)\b\s*[:=]\s*(bearer\s+)?(?!" + re.escape(REDACTED) + r")[^\s,;}\]]+"
+            r"\b(?P<secret_key>auth|authorization|api[_-]?key|token|secret|password|passwd|credential|cookie|"
+            r"signature|signedheaders)\b(?P<secret_separator>\s*[:=]\s*)"
+            r"(?!(?:bearer\s+)?" + re.escape(REDACTED) + r"(?:$|[\s,;}\]]))"
+            r"(?P<secret_bearer>bearer\s+)?[^\s,;}\]]+"
         ),
         flags=re.IGNORECASE,
     )
@@ -256,7 +258,10 @@ class PhiPiiLogRedactor:
         redacted = self._redact_url_userinfo_in_string(value=redacted)
         redacted = self.bearer_token_pattern.sub(repl=f"Bearer {self.REDACTED}", string=redacted)
         redacted = self.secret_value_pattern.sub(
-            repl=lambda match: f"{match.group(1)}={self.REDACTED}",
+            repl=lambda match: (
+                f"{match.group('secret_key')}{match.group('secret_separator')}"
+                f"{match.group('secret_bearer') or ''}{self.REDACTED}"
+            ),
             string=redacted,
         )
         return self._redact_keyed_values_in_string(value=self._redact_test_result_objects(value=redacted))
@@ -290,22 +295,27 @@ class PhiPiiLogRedactor:
 
     def _get_direct_redacted_value(self, normalized_key: str, value: object) -> tuple[bool, object]:
         if self._is_email_key(normalized_key=normalized_key):
-            if isinstance(value, str):
-                return (
-                    True,
-                    self._redact_email(email=value) if self._string_is_scalar_email(value=value) else self.REDACTED,
-                )
-            return False, value
+            return self._get_email_direct_redacted_value(value=value)
 
         if self._is_phone_key(normalized_key=normalized_key):
             return True, self.REDACTED if isinstance(value, str) or value else value
 
         if self._is_url_key(normalized_key=normalized_key):
-            if isinstance(value, str) and value:
-                return True, self._redact_string(value=value)
-            return True, self.REDACTED if value else value
+            return self._get_url_direct_redacted_value(value=value)
 
         return False, value
+
+    def _get_email_direct_redacted_value(self, value: object) -> tuple[bool, object]:
+        if not isinstance(value, str):
+            return False, value
+        return True, self._redact_email(email=value) if self._string_is_scalar_email(value=value) else self.REDACTED
+
+    def _get_url_direct_redacted_value(self, value: object) -> tuple[bool, object]:
+        if not isinstance(value, str):
+            return False, value
+        if value:
+            return True, self._redact_string(value=value)
+        return True, value
 
     def _string_is_scalar_email(self, *, value: str) -> bool:
         stripped = value.strip()

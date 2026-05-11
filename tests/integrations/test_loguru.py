@@ -54,8 +54,7 @@ class PhiPiiLogRedactorTestCase(TestCase):
         self.assertNotIn("topsecret", output)
         self.assertNotIn("svc:", output)
         self.assertNotIn("opaque-bearer-token", output)
-        # Bearer is normalized by secret pass after bearer replacement; token must not leak.
-        self.assertIn("Authorization=[REDACTED]", output)
+        self.assertIn(f"Authorization: Bearer {PhiPiiLogRedactor.REDACTED}", output)
         self.assertIn("https://[REDACTED]@internal.example.net/api", output)
         self.assertNotIn("signature=secret", output)
         self.assertNotIn("100 Main St", output)
@@ -160,6 +159,43 @@ class PhiPiiLogRedactorBranchesTestCase(TestCase):
         self.assertNotIn("alice@example.com", str(extra))
         self.assertNotIn("charlie@example.org", str(extra))
         self.assertNotIn("nested@example.com", str(extra))
+
+    def test_url_key_non_string_values_are_redacted_recursively(self) -> None:
+        record: dict[str, Any] = {
+            "message": "",
+            "extra": {
+                "result_urls": [
+                    "https://storage.example.com/a.pdf",
+                    "https://user:secret@api.example.com/b.pdf",
+                ],
+                "related_urls": {
+                    "primary": "https://user:topsecret@reports.example.com/c.pdf",
+                },
+            },
+        }
+        self.redactor.redact_record(record)
+        extra = record["extra"]
+        if not isinstance(extra, dict):
+            self.fail(f"Expected extra to be a dict, got {type(extra).__name__}")
+        result_urls = extra["result_urls"]
+        if not isinstance(result_urls, list):
+            self.fail(f"Expected result_urls to be a list, got {type(result_urls).__name__}")
+        related_urls = extra["related_urls"]
+        if not isinstance(related_urls, dict):
+            self.fail(f"Expected related_urls to be a dict, got {type(related_urls).__name__}")
+        expected_result_urls = [
+            "https://storage.example.com/a.pdf",
+            "https://[REDACTED]@api.example.com/b.pdf",
+        ]
+        if result_urls != expected_result_urls:
+            self.fail(f"Expected result_urls to preserve URL list structure, got {result_urls!r}")
+        if related_urls["primary"] != "https://[REDACTED]@reports.example.com/c.pdf":
+            self.fail(
+                f"Expected related_urls primary URL to be redacted, got {related_urls['primary']!r}",
+            )
+        redacted_extra = str(extra)
+        if "user:secret" in redacted_extra or "user:topsecret" in redacted_extra:
+            self.fail(f"Expected URL userinfo secrets to be redacted, got {redacted_extra}")
 
     def test_list_tuple_set_extra_redacted(self) -> None:
         record: dict[str, Any] = {
@@ -276,6 +312,19 @@ class PhiPiiLogRedactorBranchesTestCase(TestCase):
 
         bearer_then_secret = self.redactor._redact_string("Authorization: Bearer sometoken")
         self.assertNotIn("[REDACTED]]", bearer_then_secret)
+
+    def test_secret_pattern_preserves_separator_and_redacted_bearer_value(self) -> None:
+        msg = self.redactor._redact_string(
+            "Authorization: Bearer opaque-token api_key = secret-token token=plain-token",
+        )
+        if f"Authorization: Bearer {PhiPiiLogRedactor.REDACTED}" not in msg:
+            self.fail(f"Expected authorization separator and bearer marker to be preserved, got {msg!r}")
+        if f"api_key = {PhiPiiLogRedactor.REDACTED}" not in msg:
+            self.fail(f"Expected api_key separator spacing to be preserved, got {msg!r}")
+        if f"token={PhiPiiLogRedactor.REDACTED}" not in msg:
+            self.fail(f"Expected token equals separator to be preserved, got {msg!r}")
+        if "opaque-token" in msg or "secret-token" in msg or "plain-token" in msg:
+            self.fail(f"Expected all secret values to be redacted, got {msg!r}")
 
     def test_find_value_end_when_value_start_is_eof(self) -> None:
         token = "plain="
@@ -484,7 +533,7 @@ class PhiPiiLogRedactorBranchesTestCase(TestCase):
         msg = self.redactor._redact_string("Authorization: Bearer aa.bb-cc/dd+ee suffix")
         self.assertNotIn("aa.bb-cc", msg)
         self.assertIn("suffix", msg)
-        self.assertIn("Authorization=[REDACTED]", msg)
+        self.assertIn(f"Authorization: Bearer {PhiPiiLogRedactor.REDACTED}", msg)
 
     def test_bearer_pattern_consumes_token_before_secret_pass(self) -> None:
         """Bearer sub runs first; odd '=' padding on tokens can leave a trailing fragment."""
