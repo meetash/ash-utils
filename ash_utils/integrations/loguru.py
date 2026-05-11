@@ -461,13 +461,21 @@ class PhiPiiLogRedactor:
         letters = [char for char in raw if char.isalpha()]
         # Constant-style keys (e.g. env vars) must not be split into p_a_s_s_w_o_r_d or a_p_i__k_e_y,
         # or sensitive substring checks miss them after normalization.
-        if letters and all(char.isupper() for char in letters):
-            value = raw
-        else:
-            value = re.sub(pattern=r"[^A-Za-z0-9]+", repl="_", string=raw)
-            value = re.sub(pattern=r"([A-Z]+)([A-Z][a-z])", repl=r"\1_\2", string=value)
-            value = re.sub(pattern=r"([a-z0-9])([A-Z])", repl=r"\1_\2", string=value)
-        return re.sub(pattern=r"_+", repl="_", string=value.lower()).strip("_")
+        split_mixed_case = not letters or not all(char.isupper() for char in letters)
+        normalized: list[str] = []
+        for index, char in enumerate(raw):
+            if not char.isascii() or not char.isalnum():
+                if normalized and normalized[-1] != "_":
+                    normalized.append("_")
+                continue
+
+            if split_mixed_case and char.isupper() and normalized and normalized[-1] != "_":
+                previous = raw[index - 1]
+                next_char = raw[index + 1] if index + 1 < len(raw) else ""
+                if previous.islower() or previous.isdigit() or (previous.isupper() and next_char.islower()):
+                    normalized.append("_")
+            normalized.append(char.lower())
+        return "".join(normalized).strip("_")
 
     def _is_sensitive_key(self, normalized_key: str) -> bool:
         return self.sensitive_key_pattern.search(string=normalized_key) is not None
