@@ -614,7 +614,9 @@ class PhiPiiLogRedactorBranchesTestCase(TestCase):
                 },
                 "order_result": {
                     "collection_date": "2024-01-01",
+                    "received_date": "2024-01-01",
                     "reported_date": "2024-01-02",
+                    "date_reported": "2024-01-02",
                     "assays": ["X"],
                 },
             },
@@ -625,12 +627,14 @@ class PhiPiiLogRedactorBranchesTestCase(TestCase):
         lab = extra["lab_results"]
         assert isinstance(lab, dict)
         self.assertEqual(lab["loinc"], PhiPiiLogRedactor.REDACTED)
-        self.assertEqual(lab["units"], PhiPiiLogRedactor.REDACTED)
+        self.assertEqual(lab["units"], "mg/dL")
         self.assertEqual(lab["interpretation"], PhiPiiLogRedactor.REDACTED)
         order = extra["order_result"]
         assert isinstance(order, dict)
-        self.assertEqual(order["collection_date"], PhiPiiLogRedactor.REDACTED)
-        self.assertEqual(order["reported_date"], PhiPiiLogRedactor.REDACTED)
+        self.assertEqual(order["collection_date"], "2024-01-01")
+        self.assertEqual(order["received_date"], "2024-01-01")
+        self.assertEqual(order["reported_date"], "2024-01-02")
+        self.assertEqual(order["date_reported"], "2024-01-02")
         self.assertEqual(order["assays"], PhiPiiLogRedactor.REDACTED)
 
     def test_message_keyed_secret_and_url_redacted(self) -> None:

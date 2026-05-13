@@ -41,13 +41,16 @@ class PhiPiiLogRedactor:
             r"result_(?:(?:item|line|record)s?|entry|entries|payload|data))$"
             r"|^(?P<payload>result_code(?:_id)?s?|result_values?|observed_values?|"
             r"(?:numeric|qualitative|lab|panel|order|kit)_results?|interpretations?|(?:reference|normal)_ranges?|"
-            r"abnormal_flags?|units|(?:collection|received|reported)_dates?|"
-            r"date_reported|specimens?|panels?|assays?|analytes?|loinc|test_names?)$"
+            r"abnormal_flags?|specimens?|panels?|assays?|analytes?|loinc|test_names?)$"
         ),
         flags=re.IGNORECASE,
     )
     result_object_head_pattern: ClassVar[re.Pattern[str]] = re.compile(
         pattern=r"\b[a-z_]\w{0,2048}Results?\w{0,2048}\s*\(",
+        flags=re.IGNORECASE,
+    )
+    loggable_result_payload_key_pattern: ClassVar[re.Pattern[str]] = re.compile(
+        pattern=r"^(?:units|(?:collection|received|reported)_dates?|date_reported)$",
         flags=re.IGNORECASE,
     )
     keyed_value_pattern: ClassVar[re.Pattern[str]] = re.compile(
@@ -71,7 +74,7 @@ class PhiPiiLogRedactor:
             r"|(?:^|_)credentials?(?:$|_)"
             r"|(?:^|_)private_key(?:$|_)"
             r"|(?:^|_)secrets?(?:$|_)"
-            r"|(?:^|_)pass(?:word|wd)?(?!_policy(?:$|_))(?:$|_)"
+            r"|(?:^|_)pass(?:word|wd)?(?:$|_(?!policy(?:$|_)))"
             r"|(?:^|_)sessions?(?!_id(?:$|_))(?:$|_)"
             r"|(?:^|_)tokens?(?!_count(?:$|_))(?:$|_)"
             r"|(?:^|_)auth(?!_failed)(?:$|_)"
@@ -142,7 +145,11 @@ class PhiPiiLogRedactor:
             return self.REDACTED
 
         if isinstance(value, str):
-            return self.REDACTED if in_result_payload else self._redact_string(value=value)
+            return self._redact_string_value(
+                value=value,
+                normalized_key=normalized_key,
+                in_result_payload=in_result_payload,
+            )
 
         if isinstance(value, Mapping):
             return self._redact_mapping(
@@ -185,6 +192,11 @@ class PhiPiiLogRedactor:
             )
 
         return redacted_value
+
+    def _redact_string_value(self, value: str, *, normalized_key: str, in_result_payload: bool) -> str:
+        if in_result_payload and not self._is_loggable_result_payload_key(normalized_key=normalized_key):
+            return self.REDACTED
+        return self._redact_string(value=value)
 
     def _redact_items(
         self,
@@ -580,6 +592,9 @@ class PhiPiiLogRedactor:
 
     def _is_test_result_payload_key(self, normalized_key: str) -> bool:
         return self._matches_test_result_group(value=normalized_key, group_name="payload")
+
+    def _is_loggable_result_payload_key(self, normalized_key: str) -> bool:
+        return self.loggable_result_payload_key_pattern.fullmatch(string=normalized_key) is not None
 
     def _matches_test_result_group(self, value: str, group_name: str) -> bool:
         match = self.test_result_pattern.fullmatch(string=value)
