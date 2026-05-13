@@ -486,6 +486,7 @@ class PhiPiiLogRedactorBranchesTestCase(TestCase):
                 "upstream_session_id": "trace-99",
                 "oauth_token_count": 2,
                 "legacy_auth_failed_code": 401,
+                "auth_failedlogins": "should-redact",
             },
         }
         self.redactor.redact_record(record)
@@ -502,6 +503,7 @@ class PhiPiiLogRedactorBranchesTestCase(TestCase):
         self.assertEqual(extra["upstream_session_id"], "trace-99")
         self.assertEqual(extra["oauth_token_count"], 2)
         self.assertEqual(extra["legacy_auth_failed_code"], 401)
+        self.assertEqual(extra["auth_failedlogins"], PhiPiiLogRedactor.REDACTED)
 
     def test_mfa_phone_key_redacted(self) -> None:
         record: dict[str, Any] = {

@@ -69,7 +69,7 @@ class PhiPiiLogRedactor:
             r"(?:^|_)"
             r"(?:authorization|api_?key|bearer|cookies?|credentials?|private_key|secrets?|"
             r"pass(?:word|wd)?(?!_policy(?:$|_))|sessions?(?!_id(?:$|_))|tokens?(?!_count(?:$|_))|"
-            r"auth(?!_failed))"
+            r"auth(?!_failed(?:$|_)))"
             r"(?:$|_)"
         ),
         flags=re.IGNORECASE,
