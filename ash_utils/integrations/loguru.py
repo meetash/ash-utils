@@ -82,7 +82,10 @@ class PhiPiiLogRedactor:
         flags=re.IGNORECASE,
     )
     phone_key_pattern: ClassVar[re.Pattern[str]] = re.compile(
-        pattern=r"^(?:mfa_)?phone(?:_number)?$",
+        pattern=(
+            r"^(?:patient|client|shipping|target|customer|partner|impersonated|contact)?"
+            r"(?:_?user)?_?(?:mfa_)?phone(?:_?number)?$"
+        ),
         flags=re.IGNORECASE,
     )
     url_key_pattern: ClassVar[re.Pattern[str]] = re.compile(
