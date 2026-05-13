@@ -66,19 +66,11 @@ class PhiPiiLogRedactor:
     # inside `bypass` must not match; exceptions such as session_id use negative lookahead on segments.
     sensitive_key_pattern: ClassVar[re.Pattern[str]] = re.compile(
         pattern=(
-            r"(?:"
-            r"(?:^|_)authorization(?:$|_)"
-            r"|(?:^|_)api_?key(?:$|_)"
-            r"|(?:^|_)bearer(?:$|_)"
-            r"|(?:^|_)cookies?(?:$|_)"
-            r"|(?:^|_)credentials?(?:$|_)"
-            r"|(?:^|_)private_key(?:$|_)"
-            r"|(?:^|_)secrets?(?:$|_)"
-            r"|(?:^|_)pass(?:word|wd)?(?:$|_(?!policy(?:$|_)))"
-            r"|(?:^|_)sessions?(?!_id(?:$|_))(?:$|_)"
-            r"|(?:^|_)tokens?(?!_count(?:$|_))(?:$|_)"
-            r"|(?:^|_)auth(?!_failed)(?:$|_)"
-            r")"
+            r"(?:^|_)"
+            r"(?:authorization|api_?key|bearer|cookies?|credentials?|private_key|secrets?|"
+            r"pass(?:word|wd)?(?!_policy(?:$|_))|sessions?(?!_id(?:$|_))|tokens?(?!_count(?:$|_))|"
+            r"auth(?!_failed))"
+            r"(?:$|_)"
         ),
         flags=re.IGNORECASE,
     )
