@@ -37,6 +37,7 @@ class BaseApi:
         data: t.Mapping[str, t.Any] | None = None,
         params: t.Mapping[str, t.Any] | None = None,
         headers: t.MutableMapping[str, t.Any] | None = None,
+        files: t.Mapping[str, t.Any] | None = None,
     ) -> Response:
         with logger.contextualize(url=url, method=method):
             if headers is None:
@@ -56,6 +57,7 @@ class BaseApi:
                     url=url,
                     json=body,
                     data=data,
+                    files=files,
                     params=params,
                     headers=headers,
                     follow_redirects=True,

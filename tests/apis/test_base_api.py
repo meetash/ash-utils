@@ -48,6 +48,72 @@ async def test__base_api__success__with_data_instead_of_json(app):
     assert resp.status_code == 200
 
 
+async def test__base_api__success__supports_positional_params(app):
+    request_id = uuid.uuid4()
+    request_id_var.set(request_id)
+    session_id_var.set("")
+
+    response_mock = mock.Mock(status_code=200)
+    client = mock.AsyncMock(request=mock.AsyncMock(return_value=response_mock))
+
+    api = BaseApi(client=client)
+    params = {"user_id": "12"}
+
+    resp = await api._send_request(HTTPMethod.GET, "http://ashwelness.io", None, None, params)
+
+    assert client.request.call_args[1]["method"] == HTTPMethod.GET
+    assert client.request.call_args[1]["headers"] == {api.request_id_header_name: request_id}
+    assert client.request.call_args[1]["params"] == params
+    assert client.request.call_args[1]["files"] is None
+    assert resp.status_code == 200
+
+
+async def test__base_api__success__with_files(app):
+    request_id = uuid.uuid4()
+    request_id_var.set(request_id)
+    session_id_var.set("")
+
+    response_mock = mock.Mock(status_code=200)
+    client = mock.AsyncMock(request=mock.AsyncMock(return_value=response_mock))
+
+    api = BaseApi(client=client)
+    files = {"document": ("example.txt", b"file contents", "text/plain")}
+
+    resp = await api._send_request(method=HTTPMethod.POST, url="http://ashwelness.io", headers={}, files=files)
+
+    assert client.request.call_args[1]["method"] == HTTPMethod.POST
+    assert client.request.call_args[1]["headers"] == {api.request_id_header_name: request_id}
+    assert client.request.call_args[1]["files"] == files
+    assert resp.status_code == 200
+
+
+async def test__base_api__success__with_files_and_form_data(app):
+    request_id = uuid.uuid4()
+    request_id_var.set(request_id)
+    session_id_var.set("")
+
+    response_mock = mock.Mock(status_code=200)
+    client = mock.AsyncMock(request=mock.AsyncMock(return_value=response_mock))
+
+    api = BaseApi(client=client)
+    data = {"metadata": "value"}
+    files = {"document": ("example.txt", b"file contents", "text/plain")}
+
+    resp = await api._send_request(
+        method=HTTPMethod.POST,
+        url="http://ashwelness.io",
+        headers={},
+        data=data,
+        files=files,
+    )
+
+    assert client.request.call_args[1]["method"] == HTTPMethod.POST
+    assert client.request.call_args[1]["headers"] == {api.request_id_header_name: request_id}
+    assert client.request.call_args[1]["data"] == data
+    assert client.request.call_args[1]["files"] == files
+    assert resp.status_code == 200
+
+
 async def test__base_api__request_error__exception_raised(app):
     request_id = uuid.uuid4()
     request_id_var.set(request_id)
