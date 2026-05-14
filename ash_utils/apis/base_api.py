@@ -35,6 +35,7 @@ class BaseApi:
         url: str,
         body: t.Mapping[str, t.Any] | t.Collection | None = None,
         data: t.Mapping[str, t.Any] | None = None,
+        files: t.Mapping[str, t.Any] | None = None,
         params: t.Mapping[str, t.Any] | None = None,
         headers: t.MutableMapping[str, t.Any] | None = None,
     ) -> Response:
@@ -56,6 +57,7 @@ class BaseApi:
                     url=url,
                     json=body,
                     data=data,
+                    files=files,
                     params=params,
                     headers=headers,
                     follow_redirects=True,
