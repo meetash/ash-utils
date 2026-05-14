@@ -48,6 +48,26 @@ async def test__base_api__success__with_data_instead_of_json(app):
     assert resp.status_code == 200
 
 
+async def test__base_api__success__supports_positional_params(app):
+    request_id = uuid.uuid4()
+    request_id_var.set(request_id)
+    session_id_var.set("")
+
+    response_mock = mock.Mock(status_code=200)
+    client = mock.AsyncMock(request=mock.AsyncMock(return_value=response_mock))
+
+    api = BaseApi(client=client)
+    params = {"user_id": "12"}
+
+    resp = await api._send_request(HTTPMethod.GET, "http://ashwelness.io", None, None, params)
+
+    assert client.request.call_args[1]["method"] == HTTPMethod.GET
+    assert client.request.call_args[1]["headers"] == {api.request_id_header_name: request_id}
+    assert client.request.call_args[1]["params"] == params
+    assert client.request.call_args[1]["files"] is None
+    assert resp.status_code == 200
+
+
 async def test__base_api__success__with_files(app):
     request_id = uuid.uuid4()
     request_id_var.set(request_id)
