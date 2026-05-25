@@ -140,6 +140,26 @@ class SentryUtilitiesTestcase(IsolatedAsyncioTestCase):
             },
             {"values": [{"value": ""}, {"value": "REDACTED"}]},
         ),
+        (
+            {
+                "values": [
+                    {
+                        "value": json.dumps(
+                            {"error": "validation failed", "details": {"phone": "123-456-7890", "code": "E001"}}
+                        )
+                    }
+                ]
+            },
+            {
+                "values": [
+                    {
+                        "value": json.dumps(
+                            {"error": "validation failed", "details": {"phone": "REDACTED", "code": "E001"}}
+                        )
+                    }
+                ]
+            },
+        ),
     ])
     def test_redact_exception(self, exception, redacted_exception):
         event = {
@@ -193,7 +213,7 @@ class SentryUtilitiesTestcase(IsolatedAsyncioTestCase):
             "tags": {"tag_key": "tag_value"},
         }
         with patch(
-            "ash_utils.integrations.sentry.nested_update",
+            "ash_utils.integrations.sentry._redact_nested_keys",
             side_effect=Exception("Mocked exception"),
         ):
             redacted_event = _redact_exception(event)

@@ -34,4 +34,4 @@ commands:
   test:
     description: Run project tests
     cmd: |
-      uv run pytest --cov="." --cov-report term-missing --color=yes -s "${LETS_COMMAND_ARGS}"
+      uv run pytest --cov="${SRC_PATH}" --cov-report term-missing --color=yes -s "${LETS_COMMAND_ARGS}"

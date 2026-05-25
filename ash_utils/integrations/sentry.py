@@ -3,7 +3,6 @@ from functools import partial
 
 import sentry_sdk
 from loguru import logger
-from nested_lookup import nested_update
 from sentry_sdk.integrations.loguru import LoguruIntegration
 from sentry_sdk.scrubber import DEFAULT_DENYLIST, DEFAULT_PII_DENYLIST, EventScrubber
 from sentry_sdk.types import Event
@@ -35,6 +34,19 @@ def _try_parse_json(data_string: str) -> dict | None:
         return None
 
 
+def _redact_nested_keys(data: object, keys: frozenset[str], replacement: str) -> None:
+    """Replace values for matching keys anywhere in nested dicts/lists (in place)."""
+    if isinstance(data, dict):
+        for key, value in data.items():
+            if key in keys:
+                data[key] = replacement
+            else:
+                _redact_nested_keys(value, keys, replacement)
+    elif isinstance(data, list):
+        for item in data:
+            _redact_nested_keys(item, keys, replacement)
+
+
 def _redact_exception(event: Event) -> Event:
     """Redacts sensitive-tagged values or values of `keys_to_filter` in exception details."""
     for values in event.get("exception", {}).get("values", []):
@@ -49,13 +61,7 @@ def _redact_exception(event: Event) -> Event:
         try:
             exception_value_dict = _try_parse_json(exception_value)
             if exception_value_dict:
-                for key in KEYS_TO_FILTER:
-                    nested_update(
-                        exception_value_dict,
-                        key=key,
-                        value=REDACTION_STRING,
-                        in_place=True,
-                    )
+                _redact_nested_keys(exception_value_dict, frozenset(KEYS_TO_FILTER), REDACTION_STRING)
                 values["value"] = json.dumps(exception_value_dict)
             elif any(key in exception_value for key in KEYS_TO_FILTER):
                 values["value"] = REDACTION_STRING
