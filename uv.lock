@@ -44,6 +44,7 @@ dependencies = [
     { name = "pydantic" },
     { name = "secweb" },
     { name = "sentry-sdk" },
+    { name = "slack-logger" },
 ]
 
 [package.dev-dependencies]
@@ -64,6 +65,7 @@ requires-dist = [
     { name = "pydantic", specifier = ">=2.0.0,<3.0.0" },
     { name = "secweb", specifier = ">=1.18.1" },
     { name = "sentry-sdk", specifier = ">=2.22.0" },
+    { name = "slack-logger", specifier = ">=0.3.1" },
 ]
 
 [package.metadata.requires-dev]
@@ -569,6 +571,14 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/54/a2/2e6c090db384cc515069f4f85542bd5baf6786852073020ea73d4a76d3ea/sentry_sdk-2.60.0.tar.gz", hash = "sha256:0bd25e54e78ca02d0be512529fa644bbbf9e8470d7b26371294012d4ca93c978", size = 452946, upload-time = "2026-05-13T13:34:52.516Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/29/41/f2b800b7f12a05dd48c2a6280d4dd812d1425fc66ed3fe3fd99420c41d1a/sentry_sdk-2.60.0-py3-none-any.whl", hash = "sha256:28a536c03291c8bcb363cf35c611b32738ec118ff64d8d6383b096448ac4c803", size = 475616, upload-time = "2026-05-13T13:34:50.259Z" },
+]
+
+[[package]]
+name = "slack-logger"
+version = "0.3.1"
+source = { registry = "https://pypi.org/simple" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/76/3c/b6cc4e51d8021a8c20b1b0213fa9eb9cc1fb48a42dcd7215cc01ce25c4ad/slack_logger-0.3.1-py3-none-any.whl", hash = "sha256:b1d55c5e6c79089bf938db39d4e33756cd0e63d1f8b1743c7a99cc0c3957757c", size = 4517, upload-time = "2017-12-20T18:03:23.827Z" },
 ]
 
 [[package]]
