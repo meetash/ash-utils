@@ -35,6 +35,8 @@ class AnswerValidator:
         rules = question.validation_rules or {}
         if rules.get("optional", False) and (answer is None or answer == ""):
             return
+        if answer is None:
+            raise AnswerInvalidError(question.question_id, "answer is required")
         validator = self.type_validators.get(question.type)
         if validator is None:
             raise QuestionConfigurationError(
