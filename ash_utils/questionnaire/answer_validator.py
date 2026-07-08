@@ -21,13 +21,20 @@ class AnswerValidator:
     ) -> None:
         self.type_validators = type_validators or self._build_default_type_validators()
 
-    def validate(self, question: QuestionValidationInput, answer: str) -> None:
+    def validate(self, question: QuestionValidationInput, answer: str | None) -> None:
         """Validate ``answer`` against ``question``.
+
+        The ``optional`` validation rule defaults to ``False``. When set to
+        ``True``, an empty string or ``None`` answer is considered valid and
+        skips type-specific validation.
 
         User input issues are raised as `AnswerInvalidError`. Missing question
         metadata (e.g. options for select) is raised as `QuestionConfigurationError`
         and is not wrapped.
         """
+        rules = question.validation_rules or {}
+        if rules.get("optional", False) and (answer is None or answer == ""):
+            return
         validator = self.type_validators.get(question.type)
         if validator is None:
             raise QuestionConfigurationError(
