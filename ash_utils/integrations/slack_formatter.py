@@ -197,8 +197,9 @@ def _extract_validation_error_payload(*, text: str) -> str | None:
 
 def _find_validation_payload_start(*, text: str) -> int:
     lower = text.lower()
-    marker_index = lower.find("validation error")
-    if marker_index == -1:
+    marker_positions = [lower.find(marker) for marker in DICT_LIST_PYDANTIC_MARKERS]
+    marker_index = min((index for index in marker_positions if index != -1), default=-1)
+    if marker_index < 0:
         return -1
     return text.find("[", marker_index)
 

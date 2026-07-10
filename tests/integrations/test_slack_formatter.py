@@ -121,6 +121,28 @@ class SlackAttachmentFormatterTestCase(TestCase):
         self.assertIn("__root__", rendered)
         self.assertIn("partner ids and kit ids cannot be provided simultaneously", rendered)
 
+    def test_format_surfaces_dict_list_errors_for_pydantic_core_trace(self) -> None:
+        formatter = SlackAttachmentFormatter(
+            config=SlackAttachmentFormatterConfig(service_name="order-api", max_pydantic_errors=5),
+        )
+        validation_payload = (
+            "pydantic_core._pydantic_core.ValidationError: 1 error\n"
+            "[{'type': 'value_error', 'loc': ('insurance', 0, 'address'), "
+            "'msg': 'Field required'}]"
+        )
+        record = _build_record(
+            message="Validation failed",
+            level=logging.ERROR,
+            extras={"kit_id": "KIT123", "order_id": "ORD456", "partner_id": "mistr"},
+        )
+        record.exc_text = validation_payload
+
+        payload = formatter.format(record=record)
+        pydantic_field = next(field for field in payload["fields"] if field["title"] == "Pydantic Validation Errors")
+        rendered = pydantic_field["value"]
+        self.assertIn("insurance.0.address", rendered)
+        self.assertIn("Field required", rendered)
+
     def test_format_does_not_surface_unrelated_dict_list_as_pydantic_errors(self) -> None:
         formatter = SlackAttachmentFormatter(
             config=SlackAttachmentFormatterConfig(service_name="order-api", max_pydantic_errors=5),
