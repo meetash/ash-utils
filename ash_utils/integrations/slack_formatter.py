@@ -47,6 +47,11 @@ PYDANTIC_FIELD_ERROR_PATTERN = re.compile(
 TRACEBACK_ROOT_PATTERN = re.compile(r"^([A-Za-z_]\w*(?:Error|Exception|Warning)):\s+(.+)$", flags=re.MULTILINE)
 MESSAGE_LINE_PATTERN = re.compile(r"^MESSAGE:\s*(.+)$", flags=re.MULTILINE)
 TRACEBACK_START_MARKER = "Traceback (most recent call last):"
+DICT_LIST_PYDANTIC_MARKERS = (
+    "validation error",
+    "pydantic_core._pydantic_core.validationerror",
+    "pydantic validation",
+)
 
 
 @dataclass(slots=True)
@@ -158,6 +163,9 @@ def _extract_multiline_pydantic_errors(text: str, *, max_items: int) -> list[str
 
 
 def _extract_dict_list_pydantic_errors(text: str, *, max_items: int) -> list[str]:
+    if not _has_dict_list_pydantic_signal(text=text):
+        return []
+
     payload = _extract_validation_error_payload(text=text)
     if payload is None:
         return []
@@ -171,9 +179,11 @@ def _extract_dict_list_pydantic_errors(text: str, *, max_items: int) -> list[str
         if not isinstance(item, dict):
             continue
         msg = item.get("msg")
-        loc = _format_loc(item.get("loc"))
         if not isinstance(msg, str):
             continue
+        if "loc" not in item and "type" not in item:
+            continue
+        loc = _format_loc(item.get("loc"))
         errors.append(f"`{loc}` - {msg}")
     return errors
 
@@ -189,9 +199,7 @@ def _find_validation_payload_start(*, text: str) -> int:
     lower = text.lower()
     marker_index = lower.find("validation error")
     if marker_index == -1:
-        marker_index = lower.find("[{")
-        if marker_index == -1:
-            return -1
+        return -1
     return text.find("[", marker_index)
 
 
@@ -245,6 +253,11 @@ def _format_loc(loc: object) -> str:
     if isinstance(loc, str):
         return loc
     return "__root__"
+
+
+def _has_dict_list_pydantic_signal(*, text: str) -> bool:
+    lower = text.lower()
+    return any(marker in lower for marker in DICT_LIST_PYDANTIC_MARKERS)
 
 
 def first_non_empty(*values: object) -> str | None:
@@ -321,6 +334,16 @@ class SlackAttachmentFormatter(SlackFormatter):
                 {
                     "title": "Pydantic Validation Errors",
                     "value": truncate_text(rendered_errors, 1900),
+                    "short": False,
+                },
+            )
+
+        context_text = self._build_context_text(extra=extra)
+        if context_text:
+            fields.append(
+                {
+                    "title": "Context",
+                    "value": truncate_text(context_text, 1900),
                     "short": False,
                 },
             )

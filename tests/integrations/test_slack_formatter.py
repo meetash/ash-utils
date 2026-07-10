@@ -104,8 +104,13 @@ class SlackAttachmentFormatterTestCase(TestCase):
         formatter = SlackAttachmentFormatter(
             config=SlackAttachmentFormatterConfig(service_name="order-api", max_pydantic_errors=5),
         )
+        validation_payload = (
+            "Validation Error: "
+            "[{'type': 'value_error', 'loc': (), "
+            "'msg': 'Value error, partner ids and kit ids cannot be provided simultaneously'}]"
+        )
         record = _build_record(
-            message="Validation Error: [{'type': 'value_error', 'loc': (), 'msg': 'Value error, partner ids and kit ids cannot be provided simultaneously'}]",
+            message=validation_payload,
             level=logging.ERROR,
             extras={"kit_id": "KIT123", "order_id": "ORD456", "partner_id": "mistr"},
         )
@@ -115,6 +120,20 @@ class SlackAttachmentFormatterTestCase(TestCase):
         rendered = pydantic_field["value"]
         self.assertIn("__root__", rendered)
         self.assertIn("partner ids and kit ids cannot be provided simultaneously", rendered)
+
+    def test_format_does_not_surface_unrelated_dict_list_as_pydantic_errors(self) -> None:
+        formatter = SlackAttachmentFormatter(
+            config=SlackAttachmentFormatterConfig(service_name="order-api", max_pydantic_errors=5),
+        )
+        record = _build_record(
+            message="Payload debug: [{'event': 'order-received', 'kitId': 'AW123'}]",
+            level=logging.ERROR,
+            extras={"kit_id": "KIT123", "order_id": "ORD456", "partner_id": "mistr"},
+        )
+
+        payload = formatter.format(record=record)
+        pydantic_fields = [field for field in payload["fields"] if field["title"] == "Pydantic Validation Errors"]
+        self.assertEqual(pydantic_fields, [])
 
     def test_build_links_with_direct_overrides(self) -> None:
         sentry_url = build_sentry_issue_url(
@@ -140,7 +159,8 @@ class SlackAttachmentFormatterTestCase(TestCase):
             extra={"kit_id": "KIT123"},
         )
         self.assertIsNotNone(logs_url)
-        assert logs_url is not None
+        if logs_url is None:
+            self.fail("Expected logs_url to be populated")
         self.assertIn("%20AND%20", logs_url)
         self.assertNotIn("+AND+", logs_url)
         self.assertIn("timestamp%3E%3D", logs_url)
@@ -235,6 +255,31 @@ class SlackAttachmentFormatterTestCase(TestCase):
         self.assertIn("AWCTX123", payload["text"])
         self.assertIn("ORDERCTX123", payload["text"])
         self.assertIn("mistr", payload["text"])
+
+    def test_format_includes_context_field_from_configured_context_keys(self) -> None:
+        formatter = SlackAttachmentFormatter(
+            config=SlackAttachmentFormatterConfig(
+                service_name="fulfillment-api",
+                environment="staging",
+            ),
+        )
+        record = _build_record(
+            message="Context rendering test",
+            level=logging.ERROR,
+            extras={
+                "kit_id": "AWCTX123",
+                "order_id": "ORDERCTX123",
+                "partner_id": "mistr",
+                "request_id": "req-ctx-123",
+            },
+        )
+
+        payload = formatter.format(record=record)
+        context_field = next(field for field in payload["fields"] if field["title"] == "Context")
+        self.assertIn("request_id", context_field["value"])
+        self.assertIn("req-ctx-123", context_field["value"])
+        self.assertIn("environment", context_field["value"])
+        self.assertIn("staging", context_field["value"])
 
 
 def _build_record(message: str, level: int, extras: dict[str, object]) -> logging.LogRecord:
