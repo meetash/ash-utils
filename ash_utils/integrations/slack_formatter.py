@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import ast
+import json
 import re
 import traceback
 from dataclasses import dataclass, field
@@ -136,6 +138,13 @@ def extract_root_cause(*, message: str, exception_text: str | None) -> str:
 
 
 def extract_pydantic_errors(text: str, *, max_items: int) -> list[str]:
+    errors = _extract_multiline_pydantic_errors(text=text, max_items=max_items)
+    if errors:
+        return errors
+    return _extract_dict_list_pydantic_errors(text=text, max_items=max_items)
+
+
+def _extract_multiline_pydantic_errors(text: str, *, max_items: int) -> list[str]:
     if not PYDANTIC_ERRORS_PATTERN.search(text):
         return []
 
@@ -146,6 +155,96 @@ def extract_pydantic_errors(text: str, *, max_items: int) -> list[str]:
         reason = match.group(2)
         errors.append(f"`{field}` - {reason}")
     return errors
+
+
+def _extract_dict_list_pydantic_errors(text: str, *, max_items: int) -> list[str]:
+    payload = _extract_validation_error_payload(text=text)
+    if payload is None:
+        return []
+
+    parsed = _parse_validation_error_payload(payload)
+    if not isinstance(parsed, list):
+        return []
+
+    errors: list[str] = []
+    for item in parsed[:max_items]:
+        if not isinstance(item, dict):
+            continue
+        msg = item.get("msg")
+        loc = _format_loc(item.get("loc"))
+        if not isinstance(msg, str):
+            continue
+        errors.append(f"`{loc}` - {msg}")
+    return errors
+
+
+def _extract_validation_error_payload(*, text: str) -> str | None:
+    start = _find_validation_payload_start(text=text)
+    if start == -1:
+        return None
+    return _scan_bracketed_list(text=text, start=start)
+
+
+def _find_validation_payload_start(*, text: str) -> int:
+    lower = text.lower()
+    marker_index = lower.find("validation error")
+    if marker_index == -1:
+        marker_index = lower.find("[{")
+        if marker_index == -1:
+            return -1
+    return text.find("[", marker_index)
+
+
+def _scan_bracketed_list(*, text: str, start: int) -> str | None:
+    depth = 0
+    in_single = False
+    in_double = False
+    escaped = False
+    for index in range(start, len(text)):
+        char = text[index]
+        if escaped:
+            escaped = False
+            continue
+        if char == "\\":
+            escaped = True
+            continue
+        if char == "'" and not in_double:
+            in_single = not in_single
+            continue
+        if char == '"' and not in_single:
+            in_double = not in_double
+            continue
+        if in_single or in_double:
+            continue
+        if char == "[":
+            depth += 1
+        elif char == "]":
+            depth -= 1
+            if depth == 0:
+                return text[start : index + 1]
+    return None
+
+
+def _parse_validation_error_payload(payload: str) -> object | None:
+    try:
+        return json.loads(payload)
+    except json.JSONDecodeError:
+        try:
+            return ast.literal_eval(payload)
+        except (SyntaxError, ValueError):
+            return None
+
+    return None
+
+
+def _format_loc(loc: object) -> str:
+    if isinstance(loc, (list, tuple)):
+        if not loc:
+            return "__root__"
+        return ".".join(str(part) for part in loc)
+    if isinstance(loc, str):
+        return loc
+    return "__root__"
 
 
 def first_non_empty(*values: object) -> str | None:

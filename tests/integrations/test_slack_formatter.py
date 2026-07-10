@@ -100,6 +100,22 @@ class SlackAttachmentFormatterTestCase(TestCase):
         self.assertIn("shippingAddress.zip", rendered)
         self.assertIn("patientDOB", rendered)
 
+    def test_format_surfaces_dict_list_validation_errors(self) -> None:
+        formatter = SlackAttachmentFormatter(
+            config=SlackAttachmentFormatterConfig(service_name="order-api", max_pydantic_errors=5),
+        )
+        record = _build_record(
+            message="Validation Error: [{'type': 'value_error', 'loc': (), 'msg': 'Value error, partner ids and kit ids cannot be provided simultaneously'}]",
+            level=logging.ERROR,
+            extras={"kit_id": "KIT123", "order_id": "ORD456", "partner_id": "mistr"},
+        )
+
+        payload = formatter.format(record=record)
+        pydantic_field = next(field for field in payload["fields"] if field["title"] == "Pydantic Validation Errors")
+        rendered = pydantic_field["value"]
+        self.assertIn("__root__", rendered)
+        self.assertIn("partner ids and kit ids cannot be provided simultaneously", rendered)
+
     def test_build_links_with_direct_overrides(self) -> None:
         sentry_url = build_sentry_issue_url(
             extra={"sentry_issue_url": "https://sentry.example/issue/1"},
