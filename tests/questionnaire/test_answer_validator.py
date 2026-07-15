@@ -107,3 +107,32 @@ class TestValidationBehavior:
             validator.validate(question, "male")
 
         assert exc_info.value.question_id == "q1"
+
+
+class TestOptionalValidationRule:
+    @pytest.mark.parametrize("answer", ["", None])
+    def test_optional_true_allows_empty_string_or_none(self, answer: str | None) -> None:
+        validator = AnswerValidator()
+        question = _question(
+            question_type=QuestionInputType.number,
+            validation_rules={"optional": True},
+        )
+
+        validator.validate(question, answer)
+
+    def test_optional_true_still_validates_non_empty_answers(self) -> None:
+        validator = AnswerValidator()
+        question = _question(
+            question_type=QuestionInputType.number,
+            validation_rules={"optional": True},
+        )
+
+        with pytest.raises(AnswerInvalidError):
+            validator.validate(question, "abc")
+
+    def test_optional_defaults_to_false(self) -> None:
+        validator = AnswerValidator()
+        question = _question(question_type=QuestionInputType.number)
+
+        with pytest.raises(AnswerInvalidError):
+            validator.validate(question, "")

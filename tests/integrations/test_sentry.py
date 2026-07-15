@@ -144,18 +144,20 @@ class SentryUtilitiesTestcase(IsolatedAsyncioTestCase):
             {
                 "values": [
                     {
-                        "value": json.dumps(
-                            {"error": "validation failed", "details": {"phone": "123-456-7890", "code": "E001"}}
-                        )
+                        "value": json.dumps({
+                            "error": "validation failed",
+                            "details": {"phone": "123-456-7890", "code": "E001"},
+                        })
                     }
                 ]
             },
             {
                 "values": [
                     {
-                        "value": json.dumps(
-                            {"error": "validation failed", "details": {"phone": "REDACTED", "code": "E001"}}
-                        )
+                        "value": json.dumps({
+                            "error": "validation failed",
+                            "details": {"phone": "REDACTED", "code": "E001"},
+                        })
                     }
                 ]
             },
