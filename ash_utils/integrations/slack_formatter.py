@@ -6,7 +6,7 @@ import re
 import traceback
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, TypeGuard
 from urllib.parse import quote
 
 from slack_logger import SlackFormatter
@@ -171,7 +171,7 @@ def _extract_dict_list_pydantic_errors(text: str, *, max_items: int) -> list[str
         return []
 
     parsed = _parse_validation_error_payload(payload)
-    if not isinstance(parsed, list):
+    if not _is_pydantic_error_list(parsed):
         return []
 
     errors: list[str] = []
@@ -201,7 +201,20 @@ def _find_validation_payload_start(*, text: str) -> int:
     marker_index = min((index for index in marker_positions if index != -1), default=-1)
     if marker_index < 0:
         return -1
-    return text.find("[", marker_index)
+
+    search_from = marker_index
+    while True:
+        candidate_start = text.find("[", search_from)
+        if candidate_start < 0:
+            return -1
+
+        candidate_payload = _scan_bracketed_list(text=text, start=candidate_start)
+        if candidate_payload is not None:
+            parsed_candidate = _parse_validation_error_payload(candidate_payload)
+            if _is_pydantic_error_list(parsed_candidate):
+                return candidate_start
+
+        search_from = candidate_start + 1
 
 
 def _scan_bracketed_list(*, text: str, start: int) -> str | None:
@@ -244,6 +257,15 @@ def _parse_validation_error_payload(payload: str) -> object | None:
             return None
 
     return None
+
+
+def _is_pydantic_error_list(parsed: object | None) -> TypeGuard[list[object]]:
+    if not isinstance(parsed, list):
+        return False
+    for item in parsed:
+        if isinstance(item, dict) and isinstance(item.get("msg"), str) and ("loc" in item or "type" in item):
+            return True
+    return False
 
 
 def _format_loc(loc: object) -> str:
@@ -290,15 +312,18 @@ class SlackAttachmentFormatter(SlackFormatter):
         raw_extra = self._extract_extra(record=record)
         extra = sanitize_extra(extra=raw_extra)
         raw_message = record.getMessage()
-        message, inline_traceback = self._extract_message_and_traceback(message=raw_message)
-        message = truncate_text(value=message, max_length=self.config.max_message_length)
+        extracted_message, inline_traceback = self._extract_message_and_traceback(message=raw_message)
         exception_text = self._extract_exception_text(record=record) or inline_traceback
+        pydantic_source_text = "\n".join(
+            part for part in (raw_message, exception_text) if isinstance(part, str) and part.strip()
+        )
+        message = truncate_text(value=extracted_message, max_length=self.config.max_message_length)
         root_cause = truncate_text(
-            value=extract_root_cause(message=message, exception_text=exception_text),
+            value=extract_root_cause(message=extracted_message, exception_text=exception_text),
             max_length=self.config.max_root_cause_length,
         )
         pydantic_errors = extract_pydantic_errors(
-            text=exception_text or message,
+            text=pydantic_source_text,
             max_items=self.config.max_pydantic_errors,
         )
         primary_text_lines = [
@@ -396,12 +421,14 @@ class SlackAttachmentFormatter(SlackFormatter):
 
     def _build_context_text(self, *, extra: dict[str, Any]) -> str:
         context_pairs = []
+        rendered_keys: set[str] = set()
         ordered_keys = (*self.config.context_keys, *self.config.additional_context_keys)
         for key in ordered_keys:
             value = first_non_empty(extra.get(key))
             if value:
                 context_pairs.append(f"*{key}:* `{value}`")
-        if self.config.environment:
+                rendered_keys.add(key)
+        if self.config.environment and "environment" not in rendered_keys:
             context_pairs.append(f"*environment:* `{self.config.environment}`")
         timestamp = datetime.now(tz=UTC).isoformat(timespec="seconds")
         context_pairs.append(f"*rendered_at:* `{timestamp}`")

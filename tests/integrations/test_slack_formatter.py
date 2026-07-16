@@ -143,6 +143,93 @@ class SlackAttachmentFormatterTestCase(TestCase):
         self.assertIn("insurance.0.address", rendered)
         self.assertIn("Field required", rendered)
 
+    def test_format_extracts_pydantic_errors_from_untruncated_message(self) -> None:
+        formatter = SlackAttachmentFormatter(
+            config=SlackAttachmentFormatterConfig(
+                service_name="order-api",
+                max_message_length=90,
+                max_pydantic_errors=5,
+            ),
+        )
+        validation_payload = (
+            "Validation Error: "
+            "[{'type': 'value_error', 'loc': ('shippingAddress', 'zip'), "
+            "'msg': 'String should match pattern'}]"
+        )
+        long_prefix = "X" * 200
+        record = _build_record(
+            message=f"{long_prefix}{validation_payload}",
+            level=logging.ERROR,
+            extras={"kit_id": "KIT123", "order_id": "ORD456", "partner_id": "mistr"},
+        )
+
+        payload = formatter.format(record=record)
+        pydantic_field = next(field for field in payload["fields"] if field["title"] == "Pydantic Validation Errors")
+        rendered = pydantic_field["value"]
+        self.assertIn("shippingAddress.zip", rendered)
+        self.assertIn("String should match pattern", rendered)
+
+    def test_format_extracts_pydantic_errors_from_multiline_raw_message(self) -> None:
+        formatter = SlackAttachmentFormatter(
+            config=SlackAttachmentFormatterConfig(service_name="order-api", max_pydantic_errors=5),
+        )
+        record = _build_record(
+            message=(
+                "LEVEL: ERROR\n"
+                "MESSAGE: Validation error for payload\n"
+                "debug context: items[0]\n"
+                "[{'type': 'value_error', 'loc': ('insurance', 0, 'address'), 'msg': 'Field required'}]"
+            ),
+            level=logging.ERROR,
+            extras={"kit_id": "KIT123", "order_id": "ORD456", "partner_id": "mistr"},
+        )
+
+        payload = formatter.format(record=record)
+        pydantic_field = next(field for field in payload["fields"] if field["title"] == "Pydantic Validation Errors")
+        rendered = pydantic_field["value"]
+        self.assertIn("insurance.0.address", rendered)
+        self.assertIn("Field required", rendered)
+
+    def test_format_uses_raw_message_for_pydantic_errors_even_when_exc_text_exists(self) -> None:
+        formatter = SlackAttachmentFormatter(
+            config=SlackAttachmentFormatterConfig(service_name="order-api", max_pydantic_errors=5),
+        )
+        record = _build_record(
+            message=(
+                "MESSAGE: Validation error for payload\n"
+                "[{'type': 'value_error', 'loc': ('patientAddress', 'zip'), 'msg': 'Invalid ZIP'}]"
+            ),
+            level=logging.ERROR,
+            extras={"kit_id": "KIT123", "order_id": "ORD456", "partner_id": "mistr"},
+        )
+        record.exc_text = "RuntimeError: upstream failure"
+
+        payload = formatter.format(record=record)
+        pydantic_field = next(field for field in payload["fields"] if field["title"] == "Pydantic Validation Errors")
+        rendered = pydantic_field["value"]
+        self.assertIn("patientAddress.zip", rendered)
+        self.assertIn("Invalid ZIP", rendered)
+
+    def test_format_prefers_actual_dict_list_payload_over_index_brackets(self) -> None:
+        formatter = SlackAttachmentFormatter(
+            config=SlackAttachmentFormatterConfig(service_name="order-api", max_pydantic_errors=5),
+        )
+        validation_payload = (
+            "pydantic validation failed near items[0] while parsing payload "
+            "[{'type': 'value_error', 'loc': ('items', 0, 'address'), 'msg': 'Field required'}]"
+        )
+        record = _build_record(
+            message=validation_payload,
+            level=logging.ERROR,
+            extras={"kit_id": "KIT123", "order_id": "ORD456", "partner_id": "mistr"},
+        )
+
+        payload = formatter.format(record=record)
+        pydantic_field = next(field for field in payload["fields"] if field["title"] == "Pydantic Validation Errors")
+        rendered = pydantic_field["value"]
+        self.assertIn("items.0.address", rendered)
+        self.assertIn("Field required", rendered)
+
     def test_format_does_not_surface_unrelated_dict_list_as_pydantic_errors(self) -> None:
         formatter = SlackAttachmentFormatter(
             config=SlackAttachmentFormatterConfig(service_name="order-api", max_pydantic_errors=5),
@@ -302,6 +389,31 @@ class SlackAttachmentFormatterTestCase(TestCase):
         self.assertIn("req-ctx-123", context_field["value"])
         self.assertIn("environment", context_field["value"])
         self.assertIn("staging", context_field["value"])
+
+    def test_format_does_not_duplicate_environment_in_context(self) -> None:
+        formatter = SlackAttachmentFormatter(
+            config=SlackAttachmentFormatterConfig(
+                service_name="fulfillment-api",
+                environment="staging",
+            ),
+        )
+        record = _build_record(
+            message="Environment context test",
+            level=logging.ERROR,
+            extras={
+                "kit_id": "AWCTX123",
+                "order_id": "ORDERCTX123",
+                "partner_id": "mistr",
+                "environment": "production",
+            },
+        )
+
+        payload = formatter.format(record=record)
+        context_field = next(field for field in payload["fields"] if field["title"] == "Context")
+        rendered = context_field["value"]
+        self.assertEqual(rendered.count("*environment:*"), 1)
+        self.assertIn("production", rendered)
+        self.assertNotIn("staging", rendered)
 
 
 def _build_record(message: str, level: int, extras: dict[str, object]) -> logging.LogRecord:
